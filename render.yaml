@@ -1,0 +1,41 @@
+# render.yaml — Render.com deployment configuration for CogniSpace backend
+# Docs: https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: cognispace-api
+    runtime: node
+    region: oregon
+    plan: free
+
+    # Root of the Express server
+    rootDir: server
+
+    buildCommand: npm install
+    startCommand: node server.js
+
+    # Health check endpoint
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 10000
+
+      # ── Set these in the Render Dashboard → Environment ──
+      - key: MONGODB_URI
+        sync: false   # Render will prompt you to set this secret
+
+      - key: JWT_SECRET
+        sync: false   # Render will prompt you to set this secret
+
+      - key: GEMINI_API_KEY
+        sync: false   # Render will prompt you to set this secret
+
+      # Your Vercel frontend URL (set after Vercel deployment)
+      - key: CORS_ORIGINS
+        sync: false   # e.g. https://cognispace.vercel.app
+
+    autoDeploy: true

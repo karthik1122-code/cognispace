@@ -1,0 +1,41 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+server/node_modules/
+
+# ── Build output ───────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+
+# ── Environment secrets (NEVER commit these) ──────────────────
+.env
+.env.local
+.env.production
+.env.development
+server/.env
+
+# ── Logs ──────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# ── Editor / OS ───────────────────────────────────────────────
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Vite cache ────────────────────────────────────────────────
+.vite/
+vite.config.ts.timestamp-*
+
+# ── Misc ──────────────────────────────────────────────────────
+*.local
+coverage/
+.oxlintrc_cache
