@@ -13,7 +13,7 @@ const taskSchema = new mongoose.Schema(
       enum: ["Urgent", "High", "Medium", "Low"],
       default: "Medium",
     },
-    assignee: { type: String, default: "Mia K." },
+    assignee: { type: String, default: "You" },
     dueDate: { type: String, default: "Tomorrow" },
     progress: { type: Number, default: 0, min: 0, max: 100 },
     userId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },

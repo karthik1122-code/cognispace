@@ -170,6 +170,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
             }
             return data[0];
           });
+        } else if (Array.isArray(data) && data.length === 0) {
+          handleCreateDocument();
         }
       }
     } catch { /* fallback to client state */ }
@@ -784,10 +786,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center" }}>
                 {[
-                  { initials: "MK", bg: "bg-indigo-600", name: "Mia K." },
-                  { initials: "KT", bg: "bg-cyan-600", name: "Kenji T." }
+                  { initials: (user?.name || "You").slice(0, 2).toUpperCase(), bg: "bg-indigo-600", name: `${user?.name || "You"} (You)` },
+                  { initials: "AI", bg: "bg-cyan-600", name: "Gemini Copilot" }
                 ].map((av, idx) => (
-                  <div key={idx} title={`${av.name} is editing`}
+                  <div key={idx} title={`${av.name} is active`}
                     className={`w-5 h-5 rounded-full ${av.bg} flex items-center justify-center text-[9px] font-bold text-white border border-[#10121b]`}
                     style={{ marginLeft: idx > 0 ? -5 : 0 }}>
                     {av.initials}
@@ -1055,8 +1057,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
                     <User size={12} /> Assignee
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSecondary }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: C.cobalt, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "white" }}>MK</div>
-                    <span>Mia K. (Engineering Lead)</span>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: C.cobalt, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "white" }}>
+                      {(user?.name || "You").slice(0, 2).toUpperCase()}
+                    </div>
+                    <span>{user?.name || "You"} (Owner)</span>
                   </div>
                 </div>
 

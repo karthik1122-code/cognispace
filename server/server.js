@@ -68,60 +68,55 @@ async function connectDatabase() {
   }
 }
 
-// Initial Starter Documents for New Users
-const INITIAL_STARTER_DOCS = [
-  {
-    title: "Q4 Product Release Roadmap & Architecture Spec",
-    icon: "🚀",
-    cover: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)",
-    status: "In Progress",
-    priority: "Urgent",
-    tags: ["Engineering", "Tier-1", "v3.0"],
-    isStarred: true,
-    content: "<h2>Product Launch Specification</h2><p>This release delivers our real-time collaborative workspace, integrating 800ms debounce loop with optimistic concurrency control, sub-18ms SSE token streaming, and multiplayer cursors.</p><h3>Milestone Deliverables</h3><ul><li>Implement debounced 800ms state autosave with OCC checks</li><li>Nested page hierarchy with single-query aggregation</li><li>Stream inline AI edits via Server-Sent Events</li><li>Multiplayer presence with live collaborator tags</li></ul>",
-  },
-  {
-    title: "System Architecture & High-Concurrency Data Pipeline",
-    icon: "🧠",
-    cover: "linear-gradient(135deg, #092e35 0%, #0c4a6e 40%, #0284c7 100%)",
-    status: "In Review",
-    priority: "High",
-    tags: ["Backend", "Distributed"],
-    isStarred: true,
-    content: "<h2>Architecture Overview</h2><p>CogniSpace coordinates document modifications via an atomic Mongoose data layer. Every write dispatches a debounced delta with atomic concurrency to ensure zero data loss.</p><h3>Storage & Indexing</h3><ul><li>MongoDB Atlas / Mongoose ODM with compound indexing on <code>{ userId: 1, isArchived: 1, updatedAt: -1 }</code></li><li>Sub-15ms cache invalidation layer for active workspace trees</li></ul>",
-  },
-  {
-    title: "Engineering Team Standards, RFCs & Onboarding",
-    icon: "📚",
-    cover: "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 100%)",
-    status: "Done",
-    priority: "Medium",
-    tags: ["Operations", "Handbook"],
-    isStarred: false,
-    content: "<h2>Welcome to CogniSpace Engineering</h2><p>Guidelines for pairing, code review workflows, and standard local setup.</p><ol><li>Clone workspace repository</li><li>Install dependencies via <code>npm install</code></li><li>Run local dev server with <code>npm run dev</code></li><li>Full production stack is running on Express with MongoDB persistence</li></ol>",
-  },
-];
-
-const INITIAL_STARTER_TASKS = [
-  { name: "🚀 Product Launch Spec v3.0", status: "In Progress", priority: "Urgent", assignee: "Mia K.", dueDate: "Today", progress: 85 },
-  { name: "⚡ OCC Version Concurrency Check", status: "Done", priority: "High", assignee: "Kenji T.", dueDate: "Yesterday", progress: 100 },
-  { name: "📡 SSE AI Token Stream Tunnel", status: "In Review", priority: "High", assignee: "Alex R.", dueDate: "Oct 2", progress: 70 },
-  { name: "🧠 Smart Vector Knowledge Graph", status: "Backlog", priority: "Medium", assignee: "Sarah L.", dueDate: "Oct 15", progress: 25 },
-  { name: "🎨 Dark Mode Palette Polishing", status: "Done", priority: "Low", assignee: "Design Team", dueDate: "Sep 25", progress: 100 },
-];
-
-async function seedUserStarterData(userId) {
+async function seedUserStarterData(userId, userName) {
   try {
+    let name = userName;
+    if (!name) {
+      const foundUser = await User.findById(userId).lean();
+      name = foundUser?.name || "You";
+    }
+    const firstName = name.split(" ")[0] || "You";
+
     const existingDocsCount = await Document.countDocuments({ userId, isArchived: false });
     if (existingDocsCount === 0) {
-      for (const item of INITIAL_STARTER_DOCS) {
+      const starterDocs = [
+        {
+          title: `👋 Welcome to CogniSpace`,
+          icon: "🚀",
+          cover: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)",
+          status: "In Progress",
+          priority: "High",
+          tags: ["Welcome", "Guide"],
+          isStarred: true,
+          content: `<h2>Welcome to your fresh workspace, ${firstName}!</h2><p>CogniSpace combines the versatility of a Notion-style block editor with Google Gemini AI and sprint tracking.</p><h3>⚡ Quick Start Checklist</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false">Type <b>/</b> anywhere on an empty line to insert headings, toggles, or code</li><li data-type="taskItem" data-checked="false">Click <b>▶</b> on toggle lists to organize thoughts cleanly</li><li data-type="taskItem" data-checked="false">Highlight any text to rewrite or summarize with Gemini AI</li><li data-type="taskItem" data-checked="false">Click <b>+</b> in the sidebar to create new pages or sub-pages</li><li data-type="taskItem" data-checked="false">Switch to <b>Database</b> view in the sidebar to manage sprint tasks</li></ul><details open=""><summary><b>💡 Pro Tips &amp; Shortcuts</b></summary><p>• <b>⌘B</b> — Toggle sidebar<br/>• <b>⌘K</b> — Instant quick search<br/>• <b>⌘J</b> — Focus AI Copilot bar<br/>• <b>⌘N</b> — Create new document</p></details>`,
+        },
+        {
+          title: "📝 Quick Notes & Scratchpad",
+          icon: "💡",
+          cover: "linear-gradient(135deg, #092e35 0%, #0c4a6e 40%, #0284c7 100%)",
+          status: "In Progress",
+          priority: "Medium",
+          tags: ["Scratchpad", "Personal"],
+          isStarred: false,
+          content: "<h2>Personal Scratchpad</h2><p>Jot down quick thoughts, meeting notes, code snippets, or daily plans here. Your work autosaves automatically in real time.</p>",
+        },
+      ];
+
+      for (const item of starterDocs) {
         await Document.create({ ...item, userId });
       }
     }
 
     const existingTasksCount = await Task.countDocuments({ userId });
     if (existingTasksCount === 0) {
-      for (const task of INITIAL_STARTER_TASKS) {
+      const starterTasks = [
+        { name: "🚀 Explore CogniSpace editor", status: "In Progress", priority: "High", assignee: firstName, dueDate: "Today", progress: 60 },
+        { name: "⚡ Try inserting a Toggle block with /", status: "In Progress", priority: "Medium", assignee: firstName, dueDate: "Today", progress: 20 },
+        { name: "🤖 Highlight text to test Gemini AI Copilot", status: "Backlog", priority: "Medium", assignee: firstName, dueDate: "Tomorrow", progress: 0 },
+        { name: "📊 Track sprints in Database view", status: "Backlog", priority: "Low", assignee: firstName, dueDate: "This week", progress: 0 },
+      ];
+
+      for (const task of starterTasks) {
         await Task.create({ ...task, userId });
       }
     }
@@ -201,7 +196,7 @@ app.post("/api/auth/register", async (req, res) => {
     const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: "7d" });
 
     // Seed onboarding workspace content
-    await seedUserStarterData(user._id.toString());
+    await seedUserStarterData(user._id.toString(), user.name);
 
     res
       .cookie("token", token, cookieOptions)
@@ -238,7 +233,7 @@ app.post("/api/auth/login", async (req, res) => {
     const token = jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: "7d" });
 
     // Ensure documents exist
-    await seedUserStarterData(user._id.toString());
+    await seedUserStarterData(user._id.toString(), user.name);
 
     res
       .cookie("token", token, cookieOptions)
