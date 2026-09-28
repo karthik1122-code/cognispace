@@ -36,6 +36,6 @@ services:
 
       # Your Vercel frontend URL (set after Vercel deployment)
       - key: CORS_ORIGINS
-        sync: false   # e.g. https://cognispace.vercel.app
+        sync: false   # e.g. https://cognispace-sigma.vercel.app
 
     autoDeploy: true

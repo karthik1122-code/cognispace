@@ -6,8 +6,8 @@
 
 ### AI-Enhanced Collaborative Workspace · Built like Notion, Powered by Gemini
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://cognispace.vercel.app)
-[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://cognispace-api.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://cognispace-sigma.vercel.app)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://cognispace.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
@@ -23,7 +23,7 @@
 
 ## 🖥️ Screenshots
 
-> *Open the live demo to see it in action →* [cognispace.vercel.app](https://cognispace.vercel.app)
+> *Open the live demo to see it in action →* [cognispace-sigma.vercel.app](https://cognispace-sigma.vercel.app)
 
 ---
 
@@ -196,15 +196,15 @@ npm run dev
 
 | Key | Value |
 |---|---|
-| `VITE_API_URL` | `https://cognispace-api.onrender.com` |
+| `VITE_API_URL` | `https://cognispace.onrender.com` |
 
 4. Redeploy to apply the env var
-5. Copy your Vercel URL: `https://cognispace.vercel.app`
+5. Copy your Vercel URL: `https://cognispace-sigma.vercel.app`
 
 ### Step 4 — Final CORS wiring
 Back in Render → Environment, update `CORS_ORIGINS` to your Vercel URL:
 ```
-CORS_ORIGINS=https://cognispace.vercel.app
+CORS_ORIGINS=https://cognispace-sigma.vercel.app
 ```
 Render will auto-redeploy. You're live! 🎉
 
@@ -280,6 +280,6 @@ MIT © 2026 CogniSpace — Built with ❤️ using React, Express & Google Gemin
 
 <div align="center">
 
-**[Live Demo](https://cognispace.vercel.app) · [Report Bug](https://github.com/karthik1122-code/cognispace/issues) · [Request Feature](https://github.com/karthik1122-code/cognispace/issues)**
+**[Live Demo](https://cognispace-sigma.vercel.app) · [Report Bug](https://github.com/karthik1122-code/cognispace/issues) · [Request Feature](https://github.com/karthik1122-code/cognispace/issues)**
 
 </div>
