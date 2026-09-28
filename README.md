@@ -132,7 +132,7 @@ cognispace/
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/cognispace.git
+git clone https://github.com/karthik1122-code/cognispace.git
 cd cognispace
 ```
 
@@ -280,6 +280,6 @@ MIT © 2026 CogniSpace — Built with ❤️ using React, Express & Google Gemin
 
 <div align="center">
 
-**[Live Demo](https://cognispace.vercel.app) · [Report Bug](https://github.com/YOUR_USERNAME/cognispace/issues) · [Request Feature](https://github.com/YOUR_USERNAME/cognispace/issues)**
+**[Live Demo](https://cognispace.vercel.app) · [Report Bug](https://github.com/karthik1122-code/cognispace/issues) · [Request Feature](https://github.com/karthik1122-code/cognispace/issues)**
 
 </div>
