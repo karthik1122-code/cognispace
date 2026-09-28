@@ -1,3 +1,5 @@
+import { apiUrl } from '../utils/api';
+
 export interface StreamAiOptions {
   prompt: string;
   selectedText: string;
@@ -23,7 +25,7 @@ export async function streamAiTransform({
   let accumulated = '';
 
   try {
-    const response = await fetch('/api/ai/transform', {
+    const response = await fetch(apiUrl('/api/ai/transform'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

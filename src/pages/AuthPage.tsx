@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ArrowLeft, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { apiUrl } from "../utils/api";
 
 interface AuthUser {
   id: string;
@@ -38,7 +39,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, onBackToLand
     const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch(apiUrl(endpoint), {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",   // send/receive HTTP-only cookie

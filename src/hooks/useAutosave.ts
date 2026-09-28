@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiUrl } from '../utils/api';
 
 export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle';
 
@@ -36,12 +37,15 @@ export function useAutosave({
     try {
       setSaveStatus('saving');
 
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       // Attempt PATCH request to /api/documents/:id
-      const res = await fetch(`/api/documents/${id}`, {
+      const res = await fetch(apiUrl(`/api/documents/${id}`), {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify({
           title: dataToSave.title,
           content: dataToSave.content,

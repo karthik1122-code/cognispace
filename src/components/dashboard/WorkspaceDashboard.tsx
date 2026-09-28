@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { BlockEditor } from "../editor/BlockEditor";
 import { SearchModal, type SearchDocItem } from "../modals/SearchModal";
 import { streamAiToEditor } from "../../utils/aiStream";
+import { apiUrl } from "../../utils/api";
 import {
   FileText, Search, Plus, Sparkles, LogOut,
   Trash2, Check, ChevronRight, ChevronDown,
@@ -154,7 +155,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      const res = await fetch("/api/documents", {
+      const res = await fetch(apiUrl("/api/documents"), {
         headers: getAuthHeaders(),
         credentials: "include",
       });
@@ -180,7 +181,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const fetchTasks = async () => {
     setIsLoadingTasks(true);
     try {
-      const res = await fetch("/api/tasks", {
+      const res = await fetch(apiUrl("/api/tasks"), {
         headers: getAuthHeaders(),
         credentials: "include",
       });
@@ -211,7 +212,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/documents/${docId}`, {
+        const res = await fetch(apiUrl(`/api/documents/${docId}`), {
           method: "PATCH",
           headers: getAuthHeaders(),
           credentials: "include",
@@ -244,7 +245,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       setActiveDoc(prev => prev ? { ...prev, isStarred: newStarred } : null);
     }
     try {
-      await fetch(`/api/documents/${docId}`, {
+      await fetch(apiUrl(`/api/documents/${docId}`), {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -274,7 +275,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       parentId: parentId ?? null,
     };
     try {
-      const res = await fetch("/api/documents", {
+      const res = await fetch(apiUrl("/api/documents"), {
         method: "POST",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -294,7 +295,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const handleDeleteDocument = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/documents/${id}`, {
+      await fetch(apiUrl(`/api/documents/${id}`), {
         method: "DELETE",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -321,7 +322,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       documentId: activeDoc ? getDocId(activeDoc) : null,
     };
     try {
-      const res = await fetch("/api/tasks", {
+      const res = await fetch(apiUrl("/api/tasks"), {
         method: "POST",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -338,7 +339,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const handleUpdateTask = async (taskId: string, patch: Partial<DatabaseRow>) => {
     setDatabaseRows(prev => prev.map(t => (getTaskId(t) === taskId ? { ...t, ...patch } : t)));
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await fetch(apiUrl(`/api/tasks/${taskId}`), {
         method: "PATCH",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -350,7 +351,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const handleDeleteTask = async (taskId: string) => {
     setDatabaseRows(prev => prev.filter(t => getTaskId(t) !== taskId));
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await fetch(apiUrl(`/api/tasks/${taskId}`), {
         method: "DELETE",
         headers: getAuthHeaders(),
         credentials: "include",

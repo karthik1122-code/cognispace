@@ -1,3 +1,5 @@
+import { apiUrl } from './api';
+
 export interface StreamAiToEditorParams {
   prompt: string;
   selectedText?: string;
@@ -23,8 +25,7 @@ export async function streamAiToEditor({
   onError,
 }: StreamAiToEditorParams): Promise<void> {
   try {
-    const API_BASE = (typeof __API_URL__ !== 'undefined' && __API_URL__) ? __API_URL__ : '';
-    const response = await fetch(`${API_BASE}/api/ai/transform`, {
+    const response = await fetch(apiUrl('/api/ai/transform'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

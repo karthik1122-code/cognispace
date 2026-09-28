@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LandingPage } from './pages/LandingPage';
 import { WorkspaceDashboard } from './components/dashboard/WorkspaceDashboard';
 import { AuthPage } from './pages/AuthPage';
+import { apiUrl } from './utils/api';
 
 export interface AuthUser {
   id?: string;
@@ -24,7 +25,7 @@ export function App() {
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const res = await fetch('/api/auth/me', { credentials: 'include', headers });
+        const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'include', headers });
         if (res.ok) {
           const data = await res.json();
           if (data?.user) {
@@ -63,7 +64,7 @@ export function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
     } catch { /* ignore */ }
     localStorage.removeItem('cognispace_user');
     localStorage.removeItem('auth_token');
