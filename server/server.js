@@ -471,9 +471,11 @@ app.get("/health", async (_req, res) => {
 // ── Serve React Frontend if dist/ exists (Render all-in-one deploy) ───────
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/health")) return next();
-    res.sendFile(path.join(distPath, "index.html"));
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api") && !req.path.startsWith("/health")) {
+      return res.sendFile(path.join(distPath, "index.html"));
+    }
+    next();
   });
 }
 
