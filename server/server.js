@@ -5,11 +5,18 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { User } from "./models/User.js";
 import { Document } from "./models/Document.js";
 import { Task } from "./models/Task.js";
 import { streamAiTransform } from "./controllers/aiController.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, "../dist");
 
 dotenv.config();
 
@@ -460,6 +467,15 @@ app.get("/health", async (_req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
+// ── Serve React Frontend if dist/ exists (Render all-in-one deploy) ───────
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/health")) return next();
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 // ── Boot Server & Connect DB ──────────────────────────────────
 connectDatabase().then(() => {
