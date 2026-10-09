@@ -214,9 +214,9 @@ function HistoryPanel({ lt }: { lt: number }) {
 /* ───────────── Cursor + toast per scene ───────────── */
 const CURSOR: Record<number, Pt[]> = {
   1: [[3200, 0.82, 0.55], [4500, 0.87, 0.82], [4900, 0.87, 0.83]],
-  3: [[1200, 0.8, 0.45], [2400, 0.86, 0.6], [3500, 0.86, 0.5], [4500, 0.9, 0.84], [5100, 0.88, 0.84]],
+  3: [[1000, 0.8, 0.3], [2100, 0.865, 0.49], [3000, 0.865, 0.49], [3400, 0.865, 0.64], [4200, 0.88, 0.7]],
 };
-const CLICKS: Record<number, number[]> = { 1: [4750], 3: [2350, 5000] };
+const CLICKS: Record<number, number[]> = { 1: [4750], 3: [2250, 3450] };
 
 function Toast({ lt, scene }: { lt: number; scene: number }) {
   const msg = scene === 1 && show(lt, 5100, 7600) ? ['Inserted into page', 'Undo'] : scene === 3 && show(lt, 3700, 6800) ? ['Restored. Your previous text is saved in history.', 'Undo'] : scene === 2 && show(lt, 4000, 6000) ? ['Moved to Done', 'Undo'] : null;

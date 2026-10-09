@@ -109,7 +109,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
   const [video, setVideo] = useState(false);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-app text-fg">
+    <div className="relative min-h-screen overflow-x-clip bg-app text-fg">
       <ScrollProgress />
       <a href="#shipped" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
         <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide text-accent">New</span>
