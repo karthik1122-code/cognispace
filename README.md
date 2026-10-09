@@ -10,7 +10,9 @@
 
 > The API runs on a free Render instance and sleeps when idle. The first request can take up to ~30 seconds; the app shows a "Waking up the server" banner while it starts.
 
-<!-- Add screenshots here: docs/home.png, docs/editor.png, docs/board.png -->
+![Landing page](docs/landing.png)
+
+![Animated product demo: write, Copilot, board, history](docs/live-demo.png)
 
 ## Features
 
