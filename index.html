@@ -1,16 +1,21 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M17 7.5A7 7 0 1 0 17 16.5'/><path d='M12 9a3 3 0 1 0 3 3'/><circle cx='17.5' cy='12' r='1.5' fill='%23ec4899'/></svg>" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CogniSpace — Your AI-Enhanced Second Brain</title>
-    <!-- Google Fonts: Inter, Plus Jakarta Sans & JetBrains Mono -->
+    <title>CogniSpace — The AI workspace for notes and sprints</title>
+    <meta name="description" content="CogniSpace is a fast, Notion-style workspace with an AI copilot, version history and a sprint board. Free to try." />
+    <meta property="og:title" content="CogniSpace — The AI workspace for notes and sprints" />
+    <meta property="og:description" content="Write, plan and ship in one calm workspace with an AI copilot that edits alongside you." />
+    <meta name="theme-color" content="#08090a" />
+    <script>try{var t=localStorage.getItem("cs-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);else if(window.matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-zinc-950 text-zinc-100 antialiased selection:bg-purple-500/30 selection:text-purple-200 min-h-screen overflow-x-hidden">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

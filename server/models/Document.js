@@ -18,8 +18,9 @@ const documentSchema = new mongoose.Schema(
     },
     tags: [{ type: String, trim: true }],
     isStarred: { type: Boolean, default: false },
+    version: { type: Number, default: 1 },
     isArchived: { type: Boolean, default: false, index: true },
-    userId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+    userId: { type: String, required: true, index: true },
     parentId: { type: mongoose.Schema.Types.Mixed, default: null, index: true },
   },
   {

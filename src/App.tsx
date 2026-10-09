@@ -1,113 +1,82 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LandingPage } from './pages/LandingPage';
-import { WorkspaceDashboard } from './components/dashboard/WorkspaceDashboard';
 import { AuthPage } from './pages/AuthPage';
+import { Workspace } from './components/app/Workspace';
+import { ServerWakeBanner } from './components/ui/ServerWakeBanner';
+import { Logo } from './components/landing/Logo';
 import { apiUrl } from './utils/api';
+import type { AuthUser } from './lib/types';
 
-export interface AuthUser {
-  id?: string;
-  name: string;
-  email: string;
+export type { AuthUser };
+type AppView = 'landing' | 'auth' | 'app';
+
+function readStorage(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function clearSession() {
+  try { localStorage.removeItem('cognispace_user'); localStorage.removeItem('auth_token'); } catch { /* ignore */ }
 }
 
-type AppView = 'landing' | 'auth' | 'dashboard';
+function Fade({ k, children }: { k: string; children: ReactNode }) {
+  return <motion.div key={k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}>{children}</motion.div>;
+}
 
 export function App() {
   const [view, setView] = useState<AppView>('landing');
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  // On mount: try to rehydrate from existing cookie/token
+  // Rehydrate the session from the cookie / stored token.
   useEffect(() => {
-    const rehydrate = async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'include', headers });
+        const token = readStorage('auth_token');
+        const res = await fetch(apiUrl('/api/auth/me'), {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
-          if (data?.user) {
+          if (!cancelled && data?.user) {
             setUser(data.user);
-            localStorage.setItem('cognispace_user', JSON.stringify(data.user));
-            setView('dashboard');
-            return;
+            setView('app');
           }
+        } else if (res.status === 401) {
+          clearSession();
         }
       } catch {
-        // Server offline — fall back to localStorage
+        // Server unreachable (e.g. cold start timeout): show the landing page rather than a stale session.
+      } finally {
+        if (!cancelled) setChecking(false);
       }
-
-      // Check localStorage as secondary fallback
-      const saved = localStorage.getItem('cognispace_user');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          // Only rehydrate if it's not the old hard-coded default
-          if (parsed?.email && parsed.email !== 'karthik@antigravity.io') {
-            setUser(parsed);
-            setView('dashboard');
-          }
-        } catch { /* ignore */ }
-      }
-      setSessionChecked(true);
-    };
-
-    rehydrate();
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const handleLoginSuccess = (userData: AuthUser) => {
-    setUser(userData);
-    setView('dashboard');
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
-    } catch { /* ignore */ }
-    localStorage.removeItem('cognispace_user');
-    localStorage.removeItem('auth_token');
+  const logout = useCallback(async () => {
+    try { await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' }); } catch { /* cookie expires on its own */ }
+    clearSession();
     setUser(null);
     setView('landing');
-  };
+  }, []);
 
-  // Splash while checking session
-  if (!sessionChecked && view === 'landing' && !user) {
+  if (checking) {
     return (
-      <div className="min-h-screen bg-[#060709] flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 animate-pulse" />
-          <span className="text-sm text-zinc-500 font-mono">Checking session…</span>
-        </div>
+      <div className="grid min-h-screen place-items-center bg-app" role="status" aria-label="Loading">
+        <ServerWakeBanner />
+        <div className="flex animate-pulse flex-col items-center gap-4"><Logo size={32} /></div>
       </div>
     );
   }
 
-  if (view === 'landing') {
-    return (
-      <LandingPage
-        onGetStarted={() => setView('auth')}
-        onLogin={() => setView('auth')}
-      />
-    );
-  }
-
-  if (view === 'auth') {
-    return (
-      <AuthPage
-        onLoginSuccess={handleLoginSuccess}
-        onBackToLanding={() => setView('landing')}
-      />
-    );
-  }
-
   return (
-    <WorkspaceDashboard
-      user={user}
-      onLogout={handleLogout}
-      onBackToLanding={() => setView('landing')}
-    />
+    <AnimatePresence mode="wait" initial={false}>
+      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => setView('auth')} onLogin={() => setView('auth')} /></Fade>}
+      {view === 'auth' && <Fade k="auth"><AuthPage onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
+      {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
+    </AnimatePresence>
   );
 }
 

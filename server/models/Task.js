@@ -16,7 +16,7 @@ const taskSchema = new mongoose.Schema(
     assignee: { type: String, default: "You" },
     dueDate: { type: String, default: "Tomorrow" },
     progress: { type: Number, default: 0, min: 0, max: 100 },
-    userId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+    userId: { type: String, required: true, index: true },
     documentId: { type: mongoose.Schema.Types.Mixed, default: null, index: true },
   },
   {

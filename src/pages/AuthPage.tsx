@@ -1,257 +1,148 @@
-import React, { useState } from "react";
-import { ArrowLeft, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { apiUrl } from "../utils/api";
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { staggerChild, staggerParent } from '../components/ui/motion';
+import { ArrowLeft, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { apiUrl } from '../utils/api';
+import { Logo } from '../components/landing/Logo';
+import { ProductShot } from '../components/landing/ProductShot';
+import { cn } from '../lib/cn';
+import type { AuthUser } from '../lib/types';
 
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface AuthPageProps {
+interface Props {
   onLoginSuccess: (user: AuthUser) => void;
   onBackToLanding?: () => void;
 }
 
-export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, onBackToLanding }) => {
-  const [isLogin, setIsLogin]         = useState(true);
-  const [formData, setFormData]       = useState({ name: "", email: "", password: "" });
-  const [error, setError]             = useState("");
-  const [isLoading, setIsLoading]     = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+export function AuthPage({ onLoginSuccess, onBackToLanding }: Props) {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isLogin = mode === 'login';
+  const problems = {
+    name: !isLogin && !form.name.trim() ? 'Enter your name' : '',
+    email: !EMAIL_RE.test(form.email.trim()) ? 'Enter a valid email address' : '',
+    password: isLogin ? (form.password ? '' : 'Enter your password') : form.password.length < 8 ? 'Use at least 8 characters' : '',
+  };
+  const valid = !problems.name && !problems.email && !problems.password;
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => { setForm((f) => ({ ...f, [k]: e.target.value })); setError(''); };
+  const blur = (k: string) => () => setTouched((t) => ({ ...t, [k]: true }));
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-
-    // Client-side validation
-    if (!formData.email || !formData.password)
-      return setError("Email and password are required.");
-    if (!isLogin && !formData.name)
-      return setError("Name is required.");
-    if (formData.password.length < 6)
-      return setError("Password must be at least 6 characters.");
-
-    setIsLoading(true);
-    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
-
+    setTouched({ name: true, email: true, password: true });
+    if (!valid || loading) return;
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch(apiUrl(endpoint), {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",   // send/receive HTTP-only cookie
-        body: JSON.stringify(
-          isLogin
-            ? { email: formData.email, password: formData.password }
-            : { name: formData.name, email: formData.email, password: formData.password }
-        ),
+      const res = await fetch(apiUrl(isLogin ? '/api/auth/login' : '/api/auth/register'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(isLogin ? { email: form.email, password: form.password } : { name: form.name, email: form.email, password: form.password }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Something went wrong. Please try again.");
-        return;
-      }
-
-      // Persist user + token in localStorage for App.tsx session rehydration
-      localStorage.setItem("cognispace_user", JSON.stringify(data.user));
-      if (data.token) localStorage.setItem("auth_token", data.token);
-
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error || 'Something went wrong. Please try again.'); return; }
+      try {
+        localStorage.setItem('cognispace_user', JSON.stringify(data.user));
+        if (data.token) localStorage.setItem('auth_token', data.token);
+      } catch { /* storage blocked: the cookie still authenticates */ }
       onLoginSuccess(data.user);
     } catch {
-      setError("Cannot reach backend server. Please check your connection.");
+      setError('Can’t reach the server. If it was idle, it may be waking up — wait a few seconds and try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const switchMode = () => {
-    setIsLogin(!isLogin);
-    setError("");
-    setFormData({ name: "", email: "", password: "" });
-  };
+  const err = (k: 'name' | 'email' | 'password') => (touched[k] && problems[k] ? problems[k] : '');
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans flex flex-col selection:bg-indigo-500/25" style={{ background: "#060813" }}>
-
-      {/* Ambient background glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-0">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-[radial-gradient(ellipse,rgba(99,102,241,0.15)_0%,transparent_70%)] blur-2xl" />
-        <div className="absolute top-1/2 right-1/4 w-[400px] h-[300px] bg-[radial-gradient(ellipse,rgba(6,182,212,0.1)_0%,transparent_70%)] blur-3xl" />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-10 px-6 h-14 flex items-center justify-between border-b backdrop-blur-xl" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(6,8,19,0.85)" }}>
-        <button
-          onClick={onBackToLanding}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to home
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-400 flex items-center justify-center font-black text-white text-[10px] shadow-[0_2px_8px_rgba(99,102,241,0.5)]">C</div>
-          <span className="text-sm font-bold tracking-tight text-slate-100">CogniSpace</span>
+    <div className="grid min-h-screen bg-app text-fg lg:grid-cols-[minmax(420px,520px)_1fr]">
+      <div className="flex flex-col px-6 py-6 sm:px-12">
+        <div className="flex items-center justify-between">
+          <button onClick={onBackToLanding} aria-label="Back to home"><Logo /></button>
+          <button onClick={onBackToLanding} className="btn-ghost"><ArrowLeft size={14} /> Back</button>
         </div>
-      </header>
 
-      {/* Auth card */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-[400px] p-8 rounded-2xl shadow-2xl border backdrop-blur-xl space-y-6" style={{ background: "rgba(14,20,46,0.85)", borderColor: "rgba(255,255,255,0.08)", boxShadow: "0 24px 64px -12px rgba(0,0,0,0.85)" }}>
+        <motion.div key={mode} variants={staggerParent} initial="hidden" animate="show" className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-12">
+          <motion.h1 variants={staggerChild} className="text-[30px] font-bold tracking-[-0.035em]">{isLogin ? 'Welcome back' : 'Create your workspace'}</motion.h1>
+          <motion.p variants={staggerChild} className="mb-8 mt-2 text-[14px] text-muted">{isLogin ? 'Log in to pick up where you left off.' : 'Start writing and planning in under a minute.'}</motion.p>
 
-          {/* Title */}
-          <div className="space-y-1.5 text-center">
-            <h1 className="text-2xl font-black tracking-[-0.04em] text-white">
-              {isLogin ? "Welcome back" : "Create account"}
-            </h1>
-            <p className="text-[13px] text-slate-400 leading-relaxed">
-              {isLogin
-                ? "Log in to your CogniSpace workspace."
-                : "Get started with your free workspace."}
-            </p>
-          </div>
-
-          {/* Error banner */}
-          {error && (
-            <div className="px-4 py-3 rounded-xl border border-red-500/30 bg-red-950/40 text-[12px] text-red-300 flex items-start gap-2">
-              <span className="text-red-400 mt-0.5">⚠</span>
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
-            {/* Name (register only) */}
+          <motion.form variants={staggerChild} onSubmit={submit} noValidate className="space-y-4">
             {!isLogin && (
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Full name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  autoComplete="name"
-                  placeholder="Karthik Uppari"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 text-[13px] border rounded-xl text-slate-100 placeholder:text-slate-600 transition-all focus:outline-none"
-                  style={{ background: "#0e1020", borderColor: "rgba(255,255,255,0.08)" }}
-                  onFocus={e => (e.currentTarget.style.borderColor = "rgba(59,130,246,0.6)")}
-                  onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
-                />
-              </div>
+              <Field label="Name" error={err('name')}>
+                <input className={cn('field', err('name') && '!border-danger/60')} autoComplete="name" value={form.name} onChange={set('name')} onBlur={blur('name')} placeholder="Ada Lovelace" />
+              </Field>
             )}
-
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Email address
-              </label>
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-3 text-[13px] border rounded-xl text-slate-100 placeholder:text-slate-600 transition-all focus:outline-none"
-                style={{ background: "#0e1020", borderColor: "rgba(255,255,255,0.08)" }}
-                onFocus={e => (e.currentTarget.style.borderColor = "rgba(59,130,246,0.6)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Password
-              </label>
+            <Field label="Email" error={err('email')}>
+              <input className={cn('field', err('email') && '!border-danger/60')} type="email" autoComplete="email" value={form.email} onChange={set('email')} onBlur={blur('email')} placeholder="you@example.com" />
+            </Field>
+            <Field label="Password" error={err('password')} hint={!isLogin ? 'At least 8 characters' : undefined}>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  placeholder={isLogin ? "••••••••" : "Min. 6 characters"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 pr-11 text-[13px] border rounded-xl text-slate-100 placeholder:text-slate-600 transition-all focus:outline-none"
-                  style={{ background: "#0e1020", borderColor: "rgba(255,255,255,0.08)" }}
-                  onFocus={e => (e.currentTarget.style.borderColor = "rgba(59,130,246,0.6)")}
-                  onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+                  className={cn('field pr-10', err('password') && '!border-danger/60')}
+                  type={show ? 'text' : 'password'}
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                  value={form.password}
+                  onChange={set('password')}
+                  onBlur={blur('password')}
+                  placeholder="••••••••"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition cursor-pointer"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-faint hover:text-fg">
+                  {show ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            </div>
+            </Field>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 text-white text-[13px] font-bold rounded-xl shadow-[0_4px_24px_-4px_rgba(59,130,246,0.5)] hover:shadow-[0_6px_32px_-4px_rgba(59,130,246,0.65)] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLogin ? "Log in" : "Create account"}
+            {error && <div key={error} role="alert" className="shake rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-danger">{error}</div>}
+
+            <button type="submit" disabled={loading} className="btn-primary !h-11 w-full !rounded-xl !text-[14.5px]">
+              {loading ? <><Loader2 size={16} className="animate-spin" /> {isLogin ? 'Logging in…' : 'Creating account…'}</> : isLogin ? 'Log in' : 'Create account'}
             </button>
-          </form>
+          </motion.form>
 
-          {/* Divider */}
-          <div className="relative flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-            <span className="text-[11px] text-slate-500 font-mono">or</span>
-            <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+          <motion.p variants={staggerChild} className="mt-6 text-center text-[13.5px] text-muted">
+            {isLogin ? 'New to CogniSpace?' : 'Already have an account?'}{' '}
+            <button onClick={() => { setMode(isLogin ? 'signup' : 'login'); setError(''); setTouched({}); }} className="font-medium text-accent hover:underline">
+              {isLogin ? 'Create an account' : 'Log in'}
+            </button>
+          </motion.p>
+        </motion.div>
+      </div>
+
+      <aside className="relative hidden overflow-hidden border-l border-line bg-sidebar lg:block" aria-hidden>
+        <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_70%_20%,rgb(var(--accent)/0.22),transparent)]" />
+        <div className="relative flex h-full flex-col justify-center gap-10 p-12">
+          <div className="max-w-[420px]">
+            <h2 className="text-gradient text-[32px] font-bold leading-tight tracking-[-0.035em]">Write it. Plan it. <span className="text-gradient-accent">Ship it.</span></h2>
+            <ul className="mt-5 space-y-2.5 text-[14px] text-muted">
+              {['Block editor with “/” commands', 'Copilot that edits the page you’re on', 'Sprint board and version history'].map((t) => (
+                <li key={t} className="flex items-center gap-2.5"><span className="grid h-5 w-5 place-items-center rounded-full bg-accent/15 text-accent"><Check size={12} /></span>{t}</li>
+              ))}
+            </ul>
           </div>
-
-          {/* Demo access — instant login */}
-          <button
-            type="button"
-            onClick={() =>
-              onLoginSuccess({
-                id:    "usr-demo",
-                name:  "Demo User",
-                email: "demo@cognispace.io",
-              })
-            }
-            className="w-full py-3 border text-[13px] font-semibold text-slate-300 hover:text-white rounded-xl transition-all cursor-pointer"
-            style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(59,130,246,0.1)"; e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
-          >
-            Continue with demo access
-          </button>
-
-          {/* Toggle mode */}
-          <p className="text-[12px] text-slate-400 text-center">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <button
-              type="button"
-              onClick={switchMode}
-              className="ml-1.5 text-blue-400 hover:text-blue-300 font-semibold transition-colors cursor-pointer"
-            >
-              {isLogin ? "Sign up free" : "Log in"}
-            </button>
-          </p>
-
-          {/* Security badge */}
-          <p className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1.5 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-            HTTP-only cookie · bcrypt · JWT 7d
-          </p>
+          <div className="-mr-24 origin-left scale-[0.9]"><ProductShot /></div>
         </div>
-      </main>
+      </aside>
     </div>
   );
-};
+}
+
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 flex justify-between text-[12.5px] font-medium text-muted">{label}{hint && <span className="font-normal text-faint">{hint}</span>}</span>
+      {children}
+      {error && <span role="alert" className="mt-1.5 block text-[12px] text-danger">{error}</span>}
+    </label>
+  );
+}
 
 export default AuthPage;

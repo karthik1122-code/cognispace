@@ -1,47 +1,45 @@
 /** @type {import('tailwindcss').Config} */
+const v = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
-  darkMode: 'class',
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  darkMode: ['selector', '[data-theme="dark"]'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        sans: ['Geist', 'Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        mono: ['"Geist Mono"', '"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
-        workspace: {
-          bg: '#09090b', // zinc-950
-          sidebar: '#0c0d10',
-          surface: '#121316',
-          card: '#18181b', // zinc-900
-          hover: '#1e2025',
-          active: '#27272a',
-          border: 'rgba(39, 39, 42, 0.8)', // zinc-800/80
-          borderSubtle: 'rgba(39, 39, 42, 0.4)',
-        }
+        app: v('bg'),
+        sidebar: v('sidebar'),
+        surface: v('surface'),
+        elevated: v('elevated'),
+        fg: v('fg'),
+        muted: v('muted'),
+        faint: v('faint'),
+        accent: { DEFAULT: v('accent'), fg: v('accent-fg') },
+        ok: v('ok'),
+        warn: v('warn'),
+        danger: v('danger'),
+        line: 'rgb(var(--fg) / 0.08)',
+        'line-strong': 'rgb(var(--fg) / 0.14)',
       },
-      animation: {
-        'fade-in': 'fadeIn 0.15s ease-out',
-        'slide-down': 'slideDown 0.2s ease-out',
-        'pulse-subtle': 'pulseSubtle 2s infinite ease-in-out',
+      borderRadius: { xl: '12px', '2xl': '16px' },
+      boxShadow: {
+        pop: '0 0 0 1px rgb(var(--fg) / 0.08), 0 16px 48px -8px rgb(0 0 0 / 0.45)',
+        glow: '0 0 0 1px rgb(var(--accent) / 0.5), 0 8px 32px -6px rgb(var(--accent) / 0.55)',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(2px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideDown: {
-          '0%': { opacity: '0', transform: 'translateY(-6px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        pulseSubtle: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.6' },
-        }
-      }
+        'fade-up': { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+        'pop-in': { '0%': { opacity: '0', transform: 'scale(.97)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+        shimmer: { '100%': { transform: 'translateX(100%)' } },
+      },
+      animation: {
+        'fade-up': 'fade-up .35s cubic-bezier(.2,.7,.2,1) both',
+        'pop-in': 'pop-in .14s ease-out both',
+      },
     },
   },
   plugins: [],
-}
+};
