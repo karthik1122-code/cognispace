@@ -22,7 +22,7 @@ function Card({ className, children, label, title, body }: { className?: string;
   return (
     <motion.div variants={staggerChild} className={className}>
       <SpotlightCard className="card-soft group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface transition-all hover:-translate-y-0.5 hover:border-accent/40">
-        <div className="relative min-h-[170px] flex-1 overflow-hidden border-b border-line bg-fg/[0.025] p-5" aria-hidden>{children}</div>
+        <div className="relative min-h-[200px] flex-1 overflow-hidden border-b border-line bg-fg/[0.025] p-5" aria-hidden>{children}</div>
         <div className="p-6">
           <p className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-accent">{label}</p>
           <h3 className="text-[18px] font-semibold tracking-tight">{title}</h3>
@@ -48,7 +48,7 @@ function EditorMock() {
           {items.map((t, i) => <li key={t} className={cn('rounded-md px-2.5 py-1.5', i === 1 ? 'bg-accent/12 text-fg' : 'text-muted')}>{t}</li>)}
         </ul>
       </div>
-      <div className="h-24" />
+      <div className="h-36" />
     </div>
   );
 }
