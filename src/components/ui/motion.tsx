@@ -87,11 +87,11 @@ export function SplitWords({ text, className, delay = 0 }: { text: string; class
   const reduce = useReducedMotion();
   const words = text.split(' ');
   return (
-    <span className={className} aria-label={text}>
+    <span aria-label={text}>
       {words.map((w, i) => (
         <span key={i} aria-hidden className="inline-block overflow-hidden pb-[0.12em] align-bottom">
           <motion.span
-            className="inline-block"
+            className={cn('inline-block', className)}
             initial={reduce ? false : { y: '110%', opacity: 0, filter: 'blur(8px)' }}
             animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
             transition={{ duration: 0.7, delay: delay + i * 0.07, ease: EASE }}
