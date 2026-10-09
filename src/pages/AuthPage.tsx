@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { staggerChild, staggerParent } from '../components/ui/motion';
 import { ArrowLeft, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { apiUrl } from '../utils/api';
 import { Logo } from '../components/landing/Logo';
@@ -69,11 +71,11 @@ export function AuthPage({ onLoginSuccess, onBackToLanding }: Props) {
           <button onClick={onBackToLanding} className="btn-ghost"><ArrowLeft size={14} /> Back</button>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-12">
-          <h1 className="text-[30px] font-bold tracking-[-0.035em]">{isLogin ? 'Welcome back' : 'Create your workspace'}</h1>
-          <p className="mb-8 mt-2 text-[14px] text-muted">{isLogin ? 'Log in to pick up where you left off.' : 'Start writing and planning in under a minute.'}</p>
+        <motion.div key={mode} variants={staggerParent} initial="hidden" animate="show" className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-12">
+          <motion.h1 variants={staggerChild} className="text-[30px] font-bold tracking-[-0.035em]">{isLogin ? 'Welcome back' : 'Create your workspace'}</motion.h1>
+          <motion.p variants={staggerChild} className="mb-8 mt-2 text-[14px] text-muted">{isLogin ? 'Log in to pick up where you left off.' : 'Start writing and planning in under a minute.'}</motion.p>
 
-          <form onSubmit={submit} noValidate className="space-y-4">
+          <motion.form variants={staggerChild} onSubmit={submit} noValidate className="space-y-4">
             {!isLogin && (
               <Field label="Name" error={err('name')}>
                 <input className={cn('field', err('name') && '!border-danger/60')} autoComplete="name" value={form.name} onChange={set('name')} onBlur={blur('name')} placeholder="Ada Lovelace" />
@@ -99,27 +101,27 @@ export function AuthPage({ onLoginSuccess, onBackToLanding }: Props) {
               </div>
             </Field>
 
-            {error && <div role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-danger">{error}</div>}
+            {error && <div key={error} role="alert" className="shake rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-danger">{error}</div>}
 
             <button type="submit" disabled={loading} className="btn-primary !h-11 w-full !rounded-xl !text-[14.5px]">
               {loading ? <><Loader2 size={16} className="animate-spin" /> {isLogin ? 'Logging in…' : 'Creating account…'}</> : isLogin ? 'Log in' : 'Create account'}
             </button>
-          </form>
+          </motion.form>
 
-          <p className="mt-6 text-center text-[13.5px] text-muted">
+          <motion.p variants={staggerChild} className="mt-6 text-center text-[13.5px] text-muted">
             {isLogin ? 'New to CogniSpace?' : 'Already have an account?'}{' '}
             <button onClick={() => { setMode(isLogin ? 'signup' : 'login'); setError(''); setTouched({}); }} className="font-medium text-accent hover:underline">
               {isLogin ? 'Create an account' : 'Log in'}
             </button>
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       </div>
 
       <aside className="relative hidden overflow-hidden border-l border-line bg-sidebar lg:block" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_70%_20%,rgb(var(--accent)/0.22),transparent)]" />
         <div className="relative flex h-full flex-col justify-center gap-10 p-12">
           <div className="max-w-[420px]">
-            <h2 className="text-[28px] font-bold leading-tight tracking-[-0.03em]">Write it. Plan it. Ship it.</h2>
+            <h2 className="text-gradient text-[32px] font-bold leading-tight tracking-[-0.035em]">Write it. Plan it. <span className="text-gradient-accent">Ship it.</span></h2>
             <ul className="mt-5 space-y-2.5 text-[14px] text-muted">
               {['Block editor with “/” commands', 'Copilot that edits the page you’re on', 'Sprint board and version history'].map((t) => (
                 <li key={t} className="flex items-center gap-2.5"><span className="grid h-5 w-5 place-items-center rounded-full bg-accent/15 text-accent"><Check size={12} /></span>{t}</li>

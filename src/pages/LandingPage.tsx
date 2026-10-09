@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Reveal, ScrollProgress, SpotlightCard, staggerChild, staggerParent } from '../components/ui/motion';
+import { Reveal, RotatingWords, ScrollProgress, SplitWords, SpotlightCard, staggerChild, staggerParent } from '../components/ui/motion';
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, Zap } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { ProductShot } from '../components/landing/ProductShot';
@@ -115,9 +115,10 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
               <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-fg">Open source</span>
               Notes, docs and sprints in one workspace <ArrowRight size={12} />
             </motion.a>
-            <motion.h1 variants={staggerChild} className="mx-auto max-w-[920px] text-balance text-[46px] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[84px]">
-              <span className="text-gradient">Where ideas become</span>{' '}
-              <span className="text-gradient-accent">shipped work.</span>
+            <motion.h1 variants={staggerChild} className="mx-auto max-w-[980px] text-balance text-[46px] font-semibold leading-[1.0] tracking-[-0.055em] sm:text-[84px]">
+              <SplitWords text="Where ideas become" className="text-gradient" />
+              <br />
+              <RotatingWords words={['shipped work.', 'launch plans.', 'sprint wins.', 'shared docs.']} className="text-gradient-accent" />
             </motion.h1>
             <motion.p variants={staggerChild} className="mx-auto mt-6 max-w-[620px] text-balance text-[17px] leading-relaxed text-muted sm:text-[19px]">
               A fast, keyboard-first workspace with a block editor, an AI Copilot that edits the page you are on, and a sprint board, all in one place.

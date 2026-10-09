@@ -81,36 +81,14 @@ Output clean HTML fragments (<p>, <ul>, <li>, <strong>, <code>) suitable for a b
         return;
       } catch (geminiError) {
         console.warn("⚠️ [AI Controller] Gemini error:", geminiError.message);
-        if (IS_PROD) throw new Error("The AI service is unavailable right now. Please try again.");
+        throw new Error(IS_PROD ? "The AI service is unavailable right now. Please try again." : `Gemini error: ${geminiError.message}`);
       }
-    } else if (IS_PROD) {
-      throw new Error("AI is not configured on this server.");
-    }
-
-    // Default Fallback for Development & Offline Mode
-    const generateFallback = (text, actionMode) => {
-      if (actionMode === "summarize") {
-        return `<p><strong>⚡ Key Insights:</strong></p><ul><li>Organized notes with atomic delta persistence.</li><li>Standardized on obsidian glassmorphic design tokens.</li><li>Verified zero-latency state synchronization.</li></ul>`;
-      }
-      if (actionMode === "improve") {
-        return `<p><strong>Refined Specification:</strong> ${text.trim()} — polished for executive clarity and structured technical precision.</p>`;
-      }
-      return `<p><strong>AI Synthesis:</strong> ${text.trim()}</p>`;
-    };
-
-    const simulatedHtml = generateFallback(selectedText || prompt, mode);
-    const chunks = simulatedHtml.match(/.{1,12}/g) || [simulatedHtml];
-
-    for (let i = 0; i < chunks.length; i++) {
-      if (!isClientConnected || res.writableEnded) break;
-      res.write(`data: ${JSON.stringify({ text: chunks[i] })}\n\n`);
-      if (typeof res.flush === "function") res.flush();
-      await new Promise((r) => setTimeout(r, 40));
-    }
-
-    if (isClientConnected && !res.writableEnded) {
-      res.write("data: [DONE]\n\n");
-      res.end();
+    } else {
+      throw new Error(
+        IS_PROD
+          ? "AI is not configured on this server."
+          : "Copilot needs a Gemini API key. Add GEMINI_API_KEY to your .env (free at aistudio.google.com/apikey) and restart the server."
+      );
     }
   } catch (error) {
     if (!res.writableEnded) {

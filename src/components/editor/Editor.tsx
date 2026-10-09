@@ -107,6 +107,15 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
         const text = head > open.from ? ed.state.doc.textBetween(open.from, head, '\n') : '';
         if (!text.startsWith('/') || /\s/.test(text) || head <= open.from) setSlash(null);
         else { setSlash({ ...open, query: text.slice(1) }); setIndex(0); }
+      } else {
+        // Fallback for input methods that don't fire a "/" keydown (mobile keyboards, IMEs).
+        const { head, empty } = ed.state.selection;
+        const $h = ed.state.selection.$from;
+        if (empty && head > 0 && ed.state.doc.textBetween(head - 1, head) === '/' && $h.parent.textContent.slice(0, $h.parentOffset).trim() === '/') {
+          const c = ed.view.coordsAtPos(head - 1);
+          setIndex(0);
+          setSlash({ from: head - 1, query: '', top: c.bottom + 6, left: Math.min(c.left, window.innerWidth - 300) });
+        }
       }
     },
     onSelectionUpdate: ({ editor: ed }) => {

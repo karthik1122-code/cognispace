@@ -106,42 +106,8 @@ export async function streamAiToEditor({
       return;
     }
 
-    // No response at all = network failure. Only simulate output in local development.
-    if (!import.meta.env.DEV) {
-      throw new Error('Could not reach the server. Check your connection and try again.');
-    }
-
-    // Client-side development fallback simulation with cancellation check
-    const generateClientFallback = (action: string, text: string): string => {
-      const lower = action.toLowerCase();
-      if (lower.includes('summarize')) {
-        return `Standardized on ${text.trim().replace(/\s+/g, ' ')} with Zinc-950 obsidian tokens and zero-latency state sync.`;
-      }
-      if (lower.includes('shorter') || lower.includes('concise')) {
-        return text.length > 90
-          ? `${text.slice(0, 80).trim()}... (concise summary)`
-          : text.trim();
-      }
-      if (lower.includes('grammar') || lower.includes('fix')) {
-        return text.replace(/\bi\b/g, 'I').replace(/\s+/g, ' ').trim();
-      }
-      return `Optimized Specification (${action}): ${text.trim()} — engineered with high-density layout and atomic version control.`;
-    };
-
-    const targetText = generateClientFallback(prompt, selectedText);
-    const words = targetText.split(' ');
-
-    for (let i = 0; i < words.length; i++) {
-      if (signal?.aborted) {
-        throw new DOMException('The user aborted a request.', 'AbortError');
-      }
-      const delta = (i === 0 ? '' : ' ') + words[i];
-      accumulatedHtml += delta;
-      if (onChunk) onChunk(delta, accumulatedHtml);
-      await new Promise((r) => setTimeout(r, 45));
-    }
-
-    if (onComplete) onComplete(accumulatedHtml);
+    // No response at all = network failure.
+    throw new Error('Could not reach the server. Check your connection and try again.');
   } catch (err: any) {
     // Distinguish between explicit user cancellation and actual errors
     if (err.name === 'AbortError') {

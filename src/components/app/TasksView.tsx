@@ -69,7 +69,7 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
 
         {!loading && tasks.length === 0 && (
           <div className="mx-auto mt-16 max-w-sm text-center">
-            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-line bg-fg/[0.03] text-2xl">🗂️</div>
+            <div className="float-y mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-line bg-fg/[0.03] text-2xl">🗂️</div>
             <h2 className="text-[16px] font-semibold">No tasks yet</h2>
             <p className="mb-4 mt-1 text-[13px] text-muted">Create your first task and drag it across the board as work moves forward.</p>
             <button onClick={() => onCreate({ name: 'My first task' })} className="btn-primary"><Plus size={14} /> Create a task</button>

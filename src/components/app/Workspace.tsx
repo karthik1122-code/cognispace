@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Check, Download, FilePlus2, History, Home, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Settings, Sparkles, Star, Sun, Trash2, WifiOff,
@@ -269,6 +270,7 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
 
         <div className="flex min-h-0 flex-1">
           <main className="min-w-0 flex-1" id="main">
+            <motion.div key={view === 'page' ? `page-${active?.id ?? 'none'}` : view} className="h-full" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.2, 0.7, 0.2, 1] }}>
             {ws.loadError ? (
               <EmptyState icon={<WifiOff size={22} />} title="Couldn’t load your workspace" body={ws.loadError} action={<button className="btn-primary" onClick={() => void ws.reload()}><RefreshCw size={14} /> Try again</button>} />
             ) : view === 'home' ? (
@@ -314,6 +316,7 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
                 action={<button className="btn-primary" onClick={() => void newDoc()}><FilePlus2 size={14} /> New page</button>}
               />
             )}
+            </motion.div>
           </main>
 
           <CopilotPanel

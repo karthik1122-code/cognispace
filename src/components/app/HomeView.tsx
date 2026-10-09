@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CountUp, Ring, staggerChild, staggerParent } from '../ui/motion';
+import { CountUp, Ring, SplitWords, staggerChild, staggerParent } from '../ui/motion';
 import { ArrowRight, Check, CheckCircle2, FileText, KanbanSquare, Plus, Sparkles, X } from 'lucide-react';
 import { STATUS_STYLE } from './Pills';
 import { TEMPLATES, type DocTemplate } from '../../hooks/useWorkspace';
@@ -69,7 +69,7 @@ export function HomeView({ user, docs, tasks, loading, onboarding, onOpenDoc, on
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-[960px] px-6 pb-24 pt-14 sm:px-10">
         <p className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        <h1 className="mt-2 text-[34px] font-semibold tracking-[-0.04em] sm:text-[40px]">{greeting()}, {first}.</h1>
+        <h1 className="mt-2 text-[34px] font-semibold tracking-[-0.04em] sm:text-[40px]"><SplitWords text={`${greeting()}, ${first}.`} /></h1>
 
         {/* Quick actions */}
         <div className="mt-6 flex flex-wrap gap-2">

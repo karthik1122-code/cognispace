@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type Variants } from 'framer-motion';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type Variants } from 'framer-motion';
 import { cn } from '../../lib/cn';
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
@@ -79,5 +79,54 @@ export function Ring({ pct, size = 96, stroke = 8 }: { pct: number; size?: numbe
         transition={{ duration: 1, ease: EASE }} transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
     </svg>
+  );
+}
+
+/** Headline text that reveals word by word with a soft blur. */
+export function SplitWords({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
+  const reduce = useReducedMotion();
+  const words = text.split(' ');
+  return (
+    <span className={className} aria-label={text}>
+      {words.map((w, i) => (
+        <span key={i} aria-hidden className="inline-block overflow-hidden pb-[0.12em] align-bottom">
+          <motion.span
+            className="inline-block"
+            initial={reduce ? false : { y: '110%', opacity: 0, filter: 'blur(8px)' }}
+            animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.7, delay: delay + i * 0.07, ease: EASE }}
+          >
+            {w}{i < words.length - 1 ? '\u00A0' : ''}
+          </motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Cycles through phrases with a vertical blur transition. */
+export function RotatingWords({ words, interval = 2600, className }: { words: string[]; interval?: number; className?: string }) {
+  const [i, setI] = useState(0);
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setI((x) => (x + 1) % words.length), interval);
+    return () => clearInterval(t);
+  }, [words.length, interval, reduce]);
+  return (
+    <span className="relative inline-block overflow-hidden pb-[0.14em] align-bottom">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={words[i]}
+          className={cn('inline-block', className)}
+          initial={{ y: '90%', opacity: 0, filter: 'blur(8px)' }}
+          animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+          exit={{ y: '-90%', opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 0.45, ease: EASE }}
+        >
+          {words[i]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }
