@@ -161,12 +161,12 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         </section>
 
         {/* Stack strip */}
-        <section className="border-b border-line">
-          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-5 py-8">
+        <section className="border-b border-line bg-fg/[0.02]">
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-5 py-9">
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Built on a modern stack</p>
-            <div className="marquee-wrap w-full overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)]">
-              <ul className="marquee flex gap-14 text-[17px] font-medium text-muted">
-                {[...STACK, ...STACK, ...STACK, ...STACK].map((s, i) => <li key={i} className="whitespace-nowrap">{s}</li>)}
+            <div className="marquee-wrap w-full overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)]">
+              <ul className="marquee flex gap-3">
+                {[...STACK, ...STACK, ...STACK, ...STACK].map((s, i) => <li key={i} className="card-soft inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface px-4 py-2 text-[14px] font-medium text-fg/80"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{s}</li>)}
               </ul>
             </div>
           </div>
@@ -187,7 +187,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         <section className="border-b border-line"><FeatureScroll rows={ROWS} onTry={onGetStarted} /></section>
 
         {/* How it works */}
-        <section id="how" className="scroll-mt-20 border-b border-line">
+        <section id="how" className="scroll-mt-20 border-b border-line bg-fg/[0.02]">
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">How it works</p>
             <h2 className="max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">From blank page to done in three steps.</h2>
@@ -224,7 +224,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         </section>
 
         {/* Shortcuts */}
-        <section id="keyboard" className="scroll-mt-20 border-b border-line">
+        <section id="keyboard" className="scroll-mt-20 border-b border-line bg-fg/[0.02]">
           <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-24 lg:grid-cols-2">
             <div>
               <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
@@ -232,9 +232,9 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
             </div>
             <ul className="card-soft divide-y divide-line rounded-2xl border border-line bg-surface">
               {SHORTCUTS.map(([keys, d]) => (
-                <li key={d} className="flex items-center justify-between px-5 py-4">
-                  <span className="text-[15px] text-muted">{d}</span>
-                  <span className="flex gap-1">{keys.map((k) => <kbd key={k} className="kbd !h-7 !min-w-[28px] !text-[13px]">{k}</kbd>)}</span>
+                <li key={d} className="group flex items-center justify-between px-6 py-5 transition-colors hover:bg-accent/[0.05]">
+                  <span className="text-[16px] text-muted transition-colors group-hover:text-fg">{d}</span>
+                  <span className="flex gap-1.5">{keys.map((k) => <kbd key={k} className="kbd !h-9 !min-w-[36px] !rounded-lg !text-[15px] shadow-[0_2px_0_rgb(var(--fg)/0.12)] transition-transform group-hover:-translate-y-0.5">{k}</kbd>)}</span>
                 </li>
               ))}
             </ul>
@@ -255,7 +255,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
                     {f.q}
                     <ChevronDown size={18} className={cn('shrink-0 text-faint transition-transform', open === i && 'rotate-180 text-fg')} />
                   </button>
-                  {open === i && <p className="animate-fade-up px-6 pb-5 text-[14.5px] leading-relaxed text-muted">{f.a}</p>}
+                  <AnimatePresence initial={false}>{open === i && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden"><p className="px-6 pb-5 text-[14.5px] leading-relaxed text-muted">{f.a}</p></motion.div>}</AnimatePresence>
                 </div>
               ))}
             </div>

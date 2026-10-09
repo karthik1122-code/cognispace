@@ -12,7 +12,7 @@ export function useTheme() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('cs-theme', theme); } catch { /* storage unavailable: theme still applies for this visit */ }
+    try { localStorage.setItem('cs-theme-v2', theme); } catch { /* storage unavailable: theme still applies for this visit */ }
   }, [theme]);
 
   const toggle = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);

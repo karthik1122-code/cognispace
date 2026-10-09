@@ -22,7 +22,7 @@ export function FeatureScroll({ rows, onTry }: { rows: FeatureRow[]; onTry: () =
             <div>
               <ol className="mb-10 flex gap-2" aria-label="Feature progress">
                 {rows.map((x, k) => (
-                  <li key={x.label} className="h-1 flex-1 overflow-hidden rounded-full bg-fg/10"><motion.span className="block h-full bg-accent" initial={false} animate={{ width: k <= i ? '100%' : '0%' }} transition={{ duration: 0.5 }} /></li>
+                  <li key={x.label} className="flex-1"><span className={cn('mb-2 block font-mono text-[10.5px] uppercase tracking-[0.1em] transition-colors', k === i ? 'text-accent' : 'text-faint')}>{x.label}</span><span className="block h-1 overflow-hidden rounded-full bg-fg/10"><motion.span className="block h-full bg-accent" initial={false} animate={{ width: k <= i ? '100%' : '0%' }} transition={{ duration: 0.5 }} /></span></li>
                 ))}
               </ol>
               <AnimatePresence mode="wait">
@@ -37,7 +37,10 @@ export function FeatureScroll({ rows, onTry }: { rows: FeatureRow[]; onTry: () =
             <div className="relative">
               <div className="absolute -inset-10 -z-10 bg-[radial-gradient(50%_50%_at_50%_50%,rgb(var(--accent)/0.22),transparent)]" />
               <AnimatePresence mode="wait">
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.94, rotateX: 8 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="rounded-2xl border border-line bg-surface/50 p-3 [perspective:1000px]">{r.art}</motion.div>
+                <motion.div key={i} initial={{ opacity: 0, scale: 0.94, rotateX: 8 }} animate={{ opacity: 1, scale: 1, rotateX: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="card-soft overflow-hidden rounded-3xl border border-line bg-surface [perspective:1000px]">
+                  <div className="flex items-center gap-1.5 border-b border-line bg-fg/[0.03] px-4 py-3" aria-hidden><span className="h-2.5 w-2.5 rounded-full bg-fg/15" /><span className="h-2.5 w-2.5 rounded-full bg-fg/15" /><span className="h-2.5 w-2.5 rounded-full bg-fg/15" /><span className="ml-3 font-mono text-[11px] text-faint">cognispace / {r.label.toLowerCase()}</span></div>
+                  <div className="grid min-h-[400px] place-items-center bg-[radial-gradient(60%_70%_at_50%_40%,rgb(var(--accent)/0.10),transparent)] p-8"><div className="w-full origin-center scale-[1.12]">{r.art}</div></div>
+                </motion.div>
               </AnimatePresence>
             </div>
           </div>
@@ -55,7 +58,7 @@ export function FeatureScroll({ rows, onTry }: { rows: FeatureRow[]; onTry: () =
                 <p className="mt-4 text-[16px] leading-relaxed text-muted">{x.body}</p>
                 <button onClick={onTry} className={cn('mt-5 inline-flex items-center gap-1 text-[14px] font-medium')}>Try it <ArrowUpRight size={15} className="text-faint" /></button>
               </div>
-              <div className="rounded-2xl border border-line bg-surface/50 p-3">{x.art}</div>
+              <div className="card-soft rounded-2xl border border-line bg-surface p-4">{x.art}</div>
             </div>
           </section>
         ))}
