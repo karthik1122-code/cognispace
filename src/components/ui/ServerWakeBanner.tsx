@@ -20,8 +20,8 @@ export function ServerWakeBanner() {
 
   if (!waking) return null;
   return (
-    <div role="status" aria-live="polite" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 120, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(12,14,21,0.95)', border: '1px solid rgba(245,158,11,0.35)', color: '#f3f4f6', fontSize: 12.5, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-      <span style={{ width: 8, height: 8, borderRadius: 99, background: '#f59e0b', animation: 'pulse 1.2s ease-in-out infinite' }} />
+    <div role="status" aria-live="polite" className="fixed left-1/2 top-4 z-[300] flex -translate-x-1/2 animate-pop-in items-center gap-2.5 rounded-xl border border-warn/40 bg-elevated px-4 py-2.5 text-[13px] shadow-pop">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-warn" />
       Waking up the server — free hosting sleeps when idle. This can take up to 30 seconds.
     </div>
   );
