@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
 import { Workspace } from './components/app/Workspace';
@@ -15,6 +16,10 @@ function readStorage(key: string): string | null {
 }
 function clearSession() {
   try { localStorage.removeItem('cognispace_user'); localStorage.removeItem('auth_token'); } catch { /* ignore */ }
+}
+
+function Fade({ k, children }: { k: string; children: ReactNode }) {
+  return <motion.div key={k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}>{children}</motion.div>;
 }
 
 export function App() {
@@ -66,13 +71,13 @@ export function App() {
     );
   }
 
-  if (view === 'landing') return <LandingPage onGetStarted={() => setView('auth')} onLogin={() => setView('auth')} />;
-
-  if (view === 'auth') {
-    return <AuthPage onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} />;
-  }
-
-  return <Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} />;
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => setView('auth')} onLogin={() => setView('auth')} /></Fade>}
+      {view === 'auth' && <Fade k="auth"><AuthPage onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
+      {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
+    </AnimatePresence>
+  );
 }
 
 export default App;

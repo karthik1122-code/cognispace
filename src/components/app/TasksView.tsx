@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CountUp } from '../ui/motion';
 import { CalendarDays, LayoutGrid, Plus, Rows3, Trash2 } from 'lucide-react';
 import { Avatar, PRIORITY_STYLE, PriorityPill, STATUS_STYLE, StatusPill } from './Pills';
 import { cn } from '../../lib/cn';
@@ -38,13 +40,13 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
       <div className="flex flex-none flex-wrap items-end gap-4 px-6 pb-4 pt-8 sm:px-10">
         <div>
           <h1 className="text-[28px] font-bold tracking-[-0.03em]">Sprint board</h1>
-          <p className="mt-1 text-[13px] text-muted">{stats.open} open · {stats.done} done</p>
+          <p className="mt-1 text-[13px] text-muted"><CountUp value={stats.open} /> open · <CountUp value={stats.done} /> done</p>
         </div>
 
         <div className="ml-2 hidden min-w-[160px] flex-1 sm:block sm:max-w-[260px]">
           <div className="mb-1 flex justify-between text-[11.5px] text-faint"><span>Sprint progress</span><span>{stats.pct}%</span></div>
           <div className="h-1.5 overflow-hidden rounded-full bg-fg/10" role="progressbar" aria-valuenow={stats.pct} aria-valuemin={0} aria-valuemax={100}>
-            <div className="h-full rounded-full bg-gradient-to-r from-accent to-ok transition-[width] duration-500" style={{ width: `${stats.pct}%` }} />
+            <motion.div className="h-full rounded-full bg-gradient-to-r from-accent via-[#d38bff] to-ok" initial={{ width: 0 }} animate={{ width: `${stats.pct}%` }} transition={{ duration: 0.8, ease: [0.2, 0.7, 0.2, 1] }} />
           </div>
         </div>
 
@@ -93,13 +95,14 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                     <button aria-label={`Add task to ${col}`} onClick={() => onCreate({ status: col, name: 'New task' })} className="ml-auto grid h-6 w-6 place-items-center rounded-md text-faint hover:bg-fg/10 hover:text-fg"><Plus size={14} /></button>
                   </header>
                   <div className="flex flex-1 flex-col gap-2">
+                    <AnimatePresence initial={false} mode="popLayout">
                     {items.map((t) => (
+                      <motion.div key={t.id} layout="position" initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: 'spring', stiffness: 420, damping: 34 }}>
                       <article
-                        key={t.id}
                         draggable
                         onDragStart={() => setDragId(t.id)}
                         onDragEnd={() => { setDragId(null); setOverCol(null); }}
-                        className={cn('group cursor-grab rounded-xl border border-line bg-surface p-3 shadow-sm transition hover:border-line-strong active:cursor-grabbing', dragId === t.id && 'opacity-40')}
+                        className={cn('group cursor-grab rounded-xl border border-line bg-surface p-3 shadow-sm transition hover:-translate-y-px hover:border-line-strong hover:shadow-lg active:cursor-grabbing', dragId === t.id && 'opacity-40')}
                       >
                         <div className="flex items-start gap-2">
                           <span className={cn('mt-1 h-3.5 w-[3px] flex-none rounded-full', PRIORITY_STYLE[t.priority].bar)} title={`${t.priority} priority`} />
@@ -118,10 +121,12 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                           <Avatar name={t.assignee || userName} size={20} />
                         </div>
                         {t.progress > 0 && t.progress < 100 && (
-                          <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-fg/10"><div className="h-full rounded-full bg-accent" style={{ width: `${t.progress}%` }} /></div>
+                          <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-fg/10"><motion.div className="h-full rounded-full bg-gradient-to-r from-accent to-[#d38bff]" initial={{ width: 0 }} animate={{ width: `${t.progress}%` }} transition={{ duration: 0.6 }} /></div>
                         )}
                       </article>
+                      </motion.div>
                     ))}
+                    </AnimatePresence>
                     {items.length === 0 && <div className="grid flex-1 place-items-center rounded-xl border border-dashed border-line py-8 text-[12px] text-faint">Drop tasks here</div>}
                   </div>
                 </section>

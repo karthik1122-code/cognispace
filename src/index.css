@@ -120,3 +120,17 @@
 @keyframes float-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 .float-y { animation: float-y 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .float-y { animation: none; } }
+
+/* ---- Motion ---- */
+.spotlight::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:0; transition: opacity .25s;
+  background: radial-gradient(260px circle at var(--mx,50%) var(--my,50%), rgb(var(--accent) / .16), transparent 70%); }
+.spotlight:hover::after { opacity: 1; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee { animation: marquee 28s linear infinite; width: max-content; }
+.marquee-wrap:hover .marquee { animation-play-state: paused; }
+@keyframes shine { 0% { transform: translateX(-120%) skewX(-20deg); } 60%,100% { transform: translateX(260%) skewX(-20deg); } }
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after { content:''; position:absolute; top:0; bottom:0; width:40%; left:0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .35), transparent); animation: shine 3.4s ease-in-out infinite; pointer-events:none; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgb(var(--ok) / .55); } 100% { box-shadow: 0 0 0 8px rgb(var(--ok) / 0); } }
+.live-dot { width: 7px; height: 7px; border-radius: 99px; background: rgb(var(--ok)); animation: pulse-ring 1.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .marquee, .btn-shine::after, .live-dot { animation: none; } }

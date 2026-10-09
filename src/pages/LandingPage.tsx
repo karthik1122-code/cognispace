@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Reveal, ScrollProgress, SpotlightCard, staggerChild, staggerParent } from '../components/ui/motion';
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, Zap } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { ProductShot } from '../components/landing/ProductShot';
@@ -80,6 +82,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-app text-fg">
+      <ScrollProgress />
       <a href="#shipped" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
         <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide text-accent">New</span>
         Version history, undo and honest autosave <ArrowRight size={12} />
@@ -107,44 +110,46 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         <section className="relative overflow-hidden border-b border-line">
           <div className="aurora pointer-events-none absolute inset-x-0 top-0 h-[640px] opacity-80" />
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--fg)/0.04)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.04)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(55%_65%_at_50%_0%,#000,transparent)]" />
-          <div className="relative mx-auto max-w-[1200px] px-5 pb-16 pt-20 text-center sm:pt-28">
-            <a href={REPO} target="_blank" rel="noreferrer" className="mx-auto mb-8 inline-flex animate-fade-up items-center gap-2 rounded-full border border-line bg-fg/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-muted backdrop-blur transition-colors hover:text-fg">
+          <motion.div variants={staggerParent} initial="hidden" animate="show" className="relative mx-auto max-w-[1200px] px-5 pb-16 pt-20 text-center sm:pt-28">
+            <motion.a variants={staggerChild} href={REPO} target="_blank" rel="noreferrer" className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-fg/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-muted backdrop-blur transition-colors hover:text-fg">
               <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-fg">Open source</span>
               Notes, docs and sprints in one workspace <ArrowRight size={12} />
-            </a>
-            <h1 className="mx-auto max-w-[920px] animate-fade-up text-balance text-[46px] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[84px]">
+            </motion.a>
+            <motion.h1 variants={staggerChild} className="mx-auto max-w-[920px] text-balance text-[46px] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[84px]">
               <span className="text-gradient">Where ideas become</span>{' '}
               <span className="text-gradient-accent">shipped work.</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-[620px] animate-fade-up text-balance text-[17px] leading-relaxed text-muted sm:text-[19px]" style={{ animationDelay: '80ms' }}>
+            </motion.h1>
+            <motion.p variants={staggerChild} className="mx-auto mt-6 max-w-[620px] text-balance text-[17px] leading-relaxed text-muted sm:text-[19px]">
               A fast, keyboard-first workspace with a block editor, an AI Copilot that edits the page you are on, and a sprint board, all in one place.
-            </p>
-            <div className="mt-9 flex animate-fade-up flex-wrap items-center justify-center gap-3" style={{ animationDelay: '140ms' }}>
-              <button onClick={onGetStarted} className="btn-primary !h-12 !rounded-full !px-7 !text-[15px]">Start building free <ArrowRight size={16} /></button>
+            </motion.p>
+            <motion.div variants={staggerChild} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <button onClick={onGetStarted} className="btn-primary btn-shine !h-12 !rounded-full !px-7 !text-[15px]">Start building free <ArrowRight size={16} /></button>
               <a href={REPO} target="_blank" rel="noreferrer" className="btn-outline !h-12 !rounded-full !px-6 !text-[15px]"><GitBranch size={15} /> Star on GitHub</a>
-            </div>
-            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-faint">
+            </motion.div>
+            <motion.ul variants={staggerChild} className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-faint">
               {['Free during beta', 'No card needed', 'Export or delete anytime'].map((t) => (
                 <li key={t} className="inline-flex items-center gap-1.5"><Check size={13} className="text-ok" />{t}</li>
               ))}
-            </ul>
+            </motion.ul>
 
-            <div id="product" className="relative mx-auto mt-16 max-w-[1080px] scroll-mt-24">
+            <motion.div variants={staggerChild} id="product" className="relative mx-auto mt-16 max-w-[1080px] scroll-mt-24">
               <div className="absolute -inset-x-10 -top-10 bottom-0 -z-10 bg-[radial-gradient(50%_60%_at_50%_30%,rgb(var(--accent)/0.28),transparent)]" />
               <div className="card-glow float-y rounded-2xl p-px">
                 <div className="overflow-hidden rounded-2xl border border-line bg-app shadow-[0_40px_120px_-30px_rgb(var(--accent)/0.55)]"><ProductShot /></div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </section>
 
         {/* Stack strip */}
         <section className="border-b border-line">
-          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 px-5 py-8 sm:flex-row sm:justify-between">
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Built on</p>
-            <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[15px] font-medium text-muted">
-              {STACK.map((s) => <li key={s}>{s}</li>)}
-            </ul>
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-5 py-8">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Built on a modern stack</p>
+            <div className="marquee-wrap w-full overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)]">
+              <ul className="marquee flex gap-14 text-[17px] font-medium text-muted">
+                {[...STACK, ...STACK, ...STACK, ...STACK].map((s, i) => <li key={i} className="whitespace-nowrap">{s}</li>)}
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -153,23 +158,24 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Features</p>
             <h2 className="max-w-[640px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Everything you need to think, plan and ship.</h2>
-            <div className="mt-12 grid gap-4 md:grid-cols-3">
+            <motion.div variants={staggerParent} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }} className="mt-12 grid gap-4 md:grid-cols-3">
               {BENTO.map(({ icon: Icon, title, body, span }) => (
-                <article key={title} className={cn('group relative overflow-hidden rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40', span)}>
-                  <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-accent/10 opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
+                <motion.div key={title} variants={staggerChild} className={span}>
+                <SpotlightCard className="h-full rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40">
                   <span className="mb-10 grid h-10 w-10 place-items-center rounded-xl border border-line bg-fg/[0.04] text-accent"><Icon size={18} /></span>
                   <h3 className="text-[18px] font-semibold tracking-tight">{title}</h3>
                   <p className="mt-2 max-w-[420px] text-[14.5px] leading-relaxed text-muted">{body}</p>
-                </article>
+                </SpotlightCard>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Feature rows */}
         {ROWS.map((r, i) => (
           <section key={r.fig} className="border-b border-line">
-            <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:gap-20">
+            <Reveal className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:gap-20">
               <div className={cn(i % 2 === 1 && 'lg:order-2')}>
                 <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">{r.label}</p>
                 <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">{r.title}</h2>
@@ -179,7 +185,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
                 </button>
               </div>
               <div className={cn('rounded-2xl border border-line bg-surface/50 p-3', i % 2 === 1 && 'lg:order-1')}>{r.art}</div>
-            </div>
+            </Reveal>
           </section>
         ))}
 
