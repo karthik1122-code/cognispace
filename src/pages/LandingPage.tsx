@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { Reveal, RotatingWords, ScrollProgress, SplitWords, SpotlightCard, staggerChild, staggerParent } from '../components/ui/motion';
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, Zap } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, X, Zap } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
-import { ProductShot } from '../components/landing/ProductShot';
+import { LiveDemo } from '../components/landing/LiveDemo';
+import { FeatureScroll } from '../components/landing/FeatureScroll';
 import { BoardIllustration, CopilotIllustration, HistoryIllustration, SlashIllustration } from '../components/landing/Illustrations';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/cn';
@@ -76,9 +77,36 @@ const BENTO = [
 
 const REPO = 'https://github.com/karthik1122-code/cognispace';
 
+/** Oversized outlined type that slides sideways as you scroll. */
+function KineticBand() {
+  const { scrollYProgress } = useScroll();
+  const x = useSpring(useTransform(scrollYProgress, [0, 1], ['0%', '-38%']), { stiffness: 80, damping: 20 });
+  const word = (t: string, solid?: boolean) => <span className={solid ? 'text-gradient-accent' : 'text-outline'}>{t}</span>;
+  return (
+    <section className="overflow-hidden border-b border-line py-10" aria-hidden>
+      <motion.div style={{ x }} className="flex w-max items-center gap-10 whitespace-nowrap text-[clamp(64px,11vw,168px)] font-semibold leading-none tracking-[-0.06em]">
+        {[0, 1, 2].map((k) => <span key={k} className="flex items-center gap-10">{word('Write.')}{word('Plan.', true)}{word('Ship.')}<span className="text-accent">✦</span></span>)}
+      </motion.div>
+    </section>
+  );
+}
+
+/** Looks for /demo.mp4 in /public. Drop your recorded video there and a "Watch" button appears. */
+function useDemoVideo() {
+  const [has, setHas] = useState(false);
+  useEffect(() => {
+    let off = false;
+    fetch('/demo.mp4', { method: 'HEAD' }).then((r) => { if (!off && r.ok && (r.headers.get('content-type') || '').startsWith('video')) setHas(true); }).catch(() => {});
+    return () => { off = true; };
+  }, []);
+  return has;
+}
+
 export function LandingPage({ onGetStarted, onLogin }: Props) {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState<number | null>(0);
+  const hasVideo = useDemoVideo();
+  const [video, setVideo] = useState(false);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-app text-fg">
@@ -135,9 +163,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
 
             <motion.div variants={staggerChild} id="product" className="relative mx-auto mt-16 max-w-[1080px] scroll-mt-24">
               <div className="absolute -inset-x-10 -top-10 bottom-0 -z-10 bg-[radial-gradient(50%_60%_at_50%_30%,rgb(var(--accent)/0.28),transparent)]" />
-              <div className="card-glow float-y rounded-2xl p-px">
-                <div className="overflow-hidden rounded-2xl border border-line bg-app shadow-[0_40px_120px_-30px_rgb(var(--accent)/0.55)]"><ProductShot /></div>
-              </div>
+              <LiveDemo onPlayVideo={hasVideo ? () => setVideo(true) : undefined} />
             </motion.div>
           </motion.div>
         </section>
@@ -153,6 +179,8 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
             </div>
           </div>
         </section>
+
+        <KineticBand />
 
         {/* Bento */}
         <section id="features" className="scroll-mt-20 border-b border-line">
@@ -173,22 +201,8 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           </div>
         </section>
 
-        {/* Feature rows */}
-        {ROWS.map((r, i) => (
-          <section key={r.fig} className="border-b border-line">
-            <Reveal className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:gap-20">
-              <div className={cn(i % 2 === 1 && 'lg:order-2')}>
-                <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">{r.label}</p>
-                <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">{r.title}</h2>
-                <p className="mt-4 max-w-[460px] text-[16px] leading-relaxed text-muted">{r.body}</p>
-                <button onClick={onGetStarted} className="group mt-6 inline-flex items-center gap-1 text-[14px] font-medium text-fg">
-                  Try it <ArrowUpRight size={15} className="text-faint transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg" />
-                </button>
-              </div>
-              <div className={cn('rounded-2xl border border-line bg-surface/50 p-3', i % 2 === 1 && 'lg:order-1')}>{r.art}</div>
-            </Reveal>
-          </section>
-        ))}
+        {/* Feature story (sticky scroll) */}
+        <section className="border-b border-line"><FeatureScroll rows={ROWS} onTry={onGetStarted} /></section>
 
         {/* How it works */}
         <section id="how" className="scroll-mt-20 border-b border-line">
@@ -314,6 +328,15 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           </div>
         </div>
       </footer>
+
+      <AnimatePresence>
+        {video && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-5 backdrop-blur-sm" onClick={() => setVideo(false)} role="dialog" aria-modal="true" aria-label="Product demo video">
+            <button aria-label="Close video" className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"><X size={18} /></button>
+            <motion.video initial={{ scale: 0.94 }} animate={{ scale: 1 }} src="/demo.mp4" controls autoPlay playsInline className="max-h-[85vh] w-full max-w-[1100px] rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

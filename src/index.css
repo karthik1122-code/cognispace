@@ -140,3 +140,6 @@
 @keyframes shake { 10%,90% { transform: translateX(-1px); } 20%,80% { transform: translateX(2px); } 30%,50%,70% { transform: translateX(-4px); } 40%,60% { transform: translateX(4px); } }
 .shake { animation: shake .45s cubic-bezier(.36,.07,.19,.97) both; }
 @media (prefers-reduced-motion: reduce) { .text-gradient-accent, .shake { animation: none; } }
+
+.text-outline { color: transparent; -webkit-text-stroke: 1.5px rgb(var(--fg) / .32); }
+:root[data-theme='light'] .text-outline { -webkit-text-stroke-color: rgb(var(--fg) / .45); }
