@@ -3,16 +3,14 @@
 
 services:
   - type: web
-    name: cognispace-api
+    name: cognispace
     runtime: node
     region: oregon
     plan: free
 
-    # Root of the Express server
-    rootDir: server
-
-    buildCommand: npm install
-    startCommand: node server.js
+    # One package.json at the repo root serves both the Vite app and the API.
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/server.js
 
     # Health check endpoint
     healthCheckPath: /health
@@ -29,7 +27,13 @@ services:
         sync: false   # Render will prompt you to set this secret
 
       - key: JWT_SECRET
-        sync: false   # Render will prompt you to set this secret
+        generateValue: true   # random 256-bit secret; the server refuses to boot in production without one
+
+      # Optional: override the Gemini model and the per-user daily AI cap
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: AI_DAILY_LIMIT
+        value: "60"
 
       - key: GEMINI_API_KEY
         sync: false   # Render will prompt you to set this secret

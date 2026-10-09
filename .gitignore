@@ -39,3 +39,6 @@ vite.config.ts.timestamp-*
 *.local
 coverage/
 .oxlintrc_cache
+
+# Local JSON data
+server/data/

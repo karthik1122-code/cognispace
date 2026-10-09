@@ -47,10 +47,19 @@ export async function streamAiToEditor({
 
     let accumulatedHtml = '';
 
+    // Server answered with an error (rate limit, auth, misconfiguration): surface it, never fake output.
+    if (response && !response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        data?.error || (response.status === 401 ? 'Your session expired. Please sign in again.' : `AI request failed (${response.status})`)
+      );
+    }
+
     // If server responded with a readable stream
     if (response && response.ok && response.body) {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
+      let buffer = ''; // SSE frames can be split across network reads
 
       while (true) {
         if (signal?.aborted) {
@@ -61,41 +70,45 @@ export async function streamAiToEditor({
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const payload = line.replace('data: ', '').trim();
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
 
-            if (payload === '[DONE]') {
-              if (onComplete) onComplete(accumulatedHtml);
-              return;
-            }
+          if (payload === '[DONE]') {
+            onComplete?.(accumulatedHtml);
+            return;
+          }
 
-            try {
-              const parsed = JSON.parse(payload);
-              if (parsed.error) throw new Error(parsed.error);
-              const textChunk = parsed.text || parsed.chunk || '';
-              if (textChunk) {
-                accumulatedHtml += textChunk;
-                if (onChunk) onChunk(textChunk, accumulatedHtml);
-              }
-              if (parsed.done) {
-                if (onComplete) onComplete(accumulatedHtml);
-                return;
-              }
-            } catch (err: any) {
-              if (err.message && err.message !== 'Unexpected end of JSON input') {
-                // Ignore parse noise on partial chunk frames
-              }
-            }
+          let parsed: { text?: string; chunk?: string; error?: string; done?: boolean };
+          try {
+            parsed = JSON.parse(payload);
+          } catch {
+            continue; // malformed frame
+          }
+          if (parsed.error) throw new Error(parsed.error);
+          const textChunk = parsed.text || parsed.chunk || '';
+          if (textChunk) {
+            accumulatedHtml += textChunk;
+            onChunk?.(textChunk, accumulatedHtml);
+          }
+          if (parsed.done) {
+            onComplete?.(accumulatedHtml);
+            return;
           }
         }
       }
 
-      if (onComplete) onComplete(accumulatedHtml);
+      onComplete?.(accumulatedHtml);
       return;
+    }
+
+    // No response at all = network failure. Only simulate output in local development.
+    if (!import.meta.env.DEV) {
+      throw new Error('Could not reach the server. Check your connection and try again.');
     }
 
     // Client-side development fallback simulation with cancellation check

@@ -3,14 +3,18 @@ import { BlockEditor } from "../editor/BlockEditor";
 import { SearchModal, type SearchDocItem } from "../modals/SearchModal";
 import { streamAiToEditor } from "../../utils/aiStream";
 import { apiUrl } from "../../utils/api";
+import { useDocSync } from "../../hooks/useDocSync";
+import { VersionHistoryModal } from "../modals/VersionHistoryModal";
+import { ServerWakeBanner } from "../ui/ServerWakeBanner";
+import { sanitizeHtml, stripCodeFences } from "../../utils/sanitize";
 import {
   FileText, Search, Plus, Sparkles, LogOut,
   Trash2, Check, ChevronRight, ChevronDown,
   MoreHorizontal, PanelLeftClose, PanelLeftOpen,
   Clock, RefreshCw, Star, Table,
-  Bot, Share2, Tag, Calendar, User,
-  CheckCheck, Filter, ArrowRight,
-  SlidersHorizontal, Layers, Square
+  Bot, Tag, Calendar, User,
+  Filter, ArrowRight,
+  SlidersHorizontal, Layers, Square, History, Download, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -49,6 +53,8 @@ export interface WorkspaceDoc {
   tags?: string[];
   isStarred?: boolean;
   parentId?: string | null;
+  version?: number;
+  updatedAt?: string;
 }
 
 export interface DatabaseRow {
@@ -87,7 +93,12 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const [isLoadingTasks, setIsLoadingTasks] = useState<boolean>(true);
   const [dbFilterStatus, setDbFilterStatus] = useState<string>("All");
 
-  const [saveStatus, setSaveStatus] = useState<"Saved" | "Saving..." | "Error">("Saved");
+  const [showHistory, setShowHistory] = useState(false);
+  const [editorNonce, setEditorNonce] = useState(0); // bump to force the editor to reload content
+  const [conflictDoc, setConflictDoc] = useState<WorkspaceDoc | null>(null);
+  const [toast, setToast] = useState<{ msg: string; actionLabel?: string; onAction?: () => void } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDeletes = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -95,7 +106,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   const [isOmnibarFocused, setIsOmnibarFocused] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showShareToast, setShowShareToast] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -109,7 +119,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
   // Native AI Copilot thought stream output
   const [aiPanelOutput, setAiPanelOutput] = useState<string | null>(null);
 
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const omnibarRef = useRef<HTMLInputElement>(null);
 
@@ -163,6 +172,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           setDocuments(data);
+          data.forEach((d: WorkspaceDoc) => sync.setVersion(getDocId(d), d.version));
           setActiveDoc(prev => {
             if (prev) {
               const matched = data.find(d => getDocId(d) === getDocId(prev));
@@ -204,29 +214,60 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
     fetchTasks();
   }, []);
 
+  const showToast = (msg: string, actionLabel?: string, onAction?: () => void, ms = 5000) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ msg, actionLabel, onAction });
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  };
+
+  const sync = useDocSync<WorkspaceDoc>({
+    getHeaders: getAuthHeaders,
+    // Only merge server metadata back. Merging `content` here would overwrite keystrokes typed while the request was in flight.
+    onSaved: (docId, saved) => {
+      const meta = { version: saved.version, updatedAt: saved.updatedAt };
+      setDocuments(prev => prev.map(d => getDocId(d) === docId ? { ...d, ...meta } : d));
+      setActiveDoc(prev => prev && getDocId(prev) === docId ? { ...prev, ...meta } : prev);
+    },
+    onConflict: (_docId, current) => setConflictDoc(current),
+  });
+
   const persistDocumentPatch = (patch: Partial<WorkspaceDoc>) => {
     if (!activeDoc) return;
     const docId = getDocId(activeDoc);
     setActiveDoc(prev => prev ? { ...prev, ...patch } : null);
     setDocuments(prev => prev.map(d => getDocId(d) === docId ? { ...d, ...patch } : d));
-    setSaveStatus("Saving...");
+    sync.queue(docId, patch as Record<string, unknown>);
+  };
 
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(apiUrl(`/api/documents/${docId}`), {
-          method: "PATCH",
-          headers: getAuthHeaders(),
-          credentials: "include",
-          body: JSON.stringify(patch),
-        });
-        if (res.ok) {
-          const updated = await res.json();
-          setDocuments(prev => prev.map(d => getDocId(d) === docId ? { ...d, ...updated } : d));
-        }
-      } catch { /* local */ }
-      setSaveStatus("Saved");
-    }, 800);
+  const loadServerVersion = () => {
+    if (!conflictDoc) return;
+    const id = getDocId(conflictDoc);
+    sync.discard(id);
+    sync.setVersion(id, conflictDoc.version);
+    setDocuments(prev => prev.map(d => getDocId(d) === id ? conflictDoc : d));
+    setActiveDoc(conflictDoc);
+    setEditorNonce(n => n + 1);
+    setConflictDoc(null);
+  };
+
+  const keepMyVersion = () => {
+    if (!conflictDoc || !activeDoc) return;
+    const id = getDocId(conflictDoc);
+    sync.setVersion(id, conflictDoc.version); // adopt the newer version, then re-send my text on top of it
+    setConflictDoc(null);
+    sync.queue(id, { title: activeDoc.title, content: activeDoc.content });
+  };
+
+  const handleExport = () => {
+    if (!activeDoc) return;
+    const html = `<!doctype html><meta charset="utf-8"><title>${activeDoc.title.replace(/</g, "&lt;")}</title><body style="font-family:system-ui;max-width:720px;margin:48px auto;line-height:1.7"><h1>${activeDoc.title.replace(/</g, "&lt;")}</h1>${sanitizeHtml(activeDoc.content)}</body>`;
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(activeDoc.title || "page").replace(/[^\w\- ]+/g, "").trim() || "page"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Exported as HTML");
   };
 
   const handleContentChange = (newHtml: string) => {
@@ -285,6 +326,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       });
       if (res.ok) {
         const created = await res.json();
+        sync.setVersion(getDocId(created), created.version);
         setDocuments(prev => [created, ...prev]);
         setActiveDoc(created);
         // Auto-expand parent in sidebar
@@ -296,20 +338,31 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
 
   const handleDeleteDocument = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    try {
-      await fetch(apiUrl(`/api/documents/${id}`), {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-        credentials: "include",
-      });
-    } catch { /* local */ }
-    setDocuments(prev => {
-      const remaining = prev.filter(d => getDocId(d) !== id);
-      if (getDocId(activeDoc) === id) {
-        setActiveDoc(remaining[0] ?? null);
-      }
-      return remaining;
-    });
+    const doc = documents.find(d => getDocId(d) === id);
+    const index = documents.findIndex(d => getDocId(d) === id);
+    if (!doc) return;
+    const wasActive = getDocId(activeDoc) === id;
+    const remaining = documents.filter(d => getDocId(d) !== id);
+    setDocuments(remaining);
+    if (wasActive) setActiveDoc(remaining[0] ?? null);
+
+    // Delay the real DELETE so the user can undo.
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(id);
+      try {
+        await fetch(apiUrl(`/api/documents/${id}`), { method: "DELETE", headers: getAuthHeaders(), credentials: "include" });
+      } catch { /* page is already gone from the UI; the next load shows the truth */ }
+    }, 6000);
+    pendingDeletes.current.set(id, timer);
+
+    showToast(`Deleted “${doc.title || "Untitled"}”`, "Undo", () => {
+      const t = pendingDeletes.current.get(id);
+      if (t) clearTimeout(t);
+      pendingDeletes.current.delete(id);
+      setDocuments(prev => { const copy = [...prev]; copy.splice(Math.min(index, copy.length), 0, doc); return copy; });
+      if (wasActive) setActiveDoc(doc);
+      setToast(null);
+    }, 6000);
   };
 
   // ── Sprint Task Database Operations ──
@@ -399,35 +452,36 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       const baseContent = activeDoc.content;
       await streamAiToEditor({
         prompt: promptText,
-        selectedText: activeDoc.content.replace(/<[^>]*>/g, " ").slice(0, 1000),
+        selectedText: activeDoc.content.replace(/<[^>]*>/g, " ").slice(0, 4000),
         documentTitle: activeDoc.title,
         mode,
         signal: controller.signal,
         onChunk: (chunk: string) => {
           accumulatedTotal += chunk;
-          setActiveDoc(prev => prev ? { ...prev, content: prev.content + chunk } : null);
-          setAiPanelOutput(prev => (prev || "") + chunk);
+          // Live preview only; sanitized so streamed HTML can never run script.
+          setAiPanelOutput(sanitizeHtml(stripCodeFences(accumulatedTotal)));
         },
         onComplete: (fullText: string) => {
-          const finalAdded = fullText || accumulatedTotal;
+          const finalAdded = sanitizeHtml(stripCodeFences(fullText || accumulatedTotal));
           setIsAiLoading(false);
           abortControllerRef.current = null;
           if (finalAdded) {
-            persistDocumentPatch({ content: baseContent + "<br/>" + finalAdded });
+            persistDocumentPatch({ content: baseContent + finalAdded });
+            setEditorNonce(n => n + 1);
+            showToast("AI text added to the page", "Undo", () => {
+              persistDocumentPatch({ content: baseContent });
+              setEditorNonce(n => n + 1);
+              setToast(null);
+            }, 8000);
           }
         },
-        onError: () => {
+        onError: (err) => {
           setIsAiLoading(false);
           abortControllerRef.current = null;
+          showToast(err?.message || "AI request failed");
         },
       });
     } catch { /* cancelled */ }
-  };
-
-  const handleShareClick = () => {
-    navigator.clipboard?.writeText(window.location.href);
-    setShowShareToast(true);
-    setTimeout(() => setShowShareToast(false), 2200);
   };
 
   const searchItems: SearchDocItem[] = documents.map(d => ({
@@ -782,49 +836,54 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
 
           {/* Right Header Actions */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Live Multiplayer Presence */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {[
-                  { initials: (user?.name || "You").slice(0, 2).toUpperCase(), bg: "bg-indigo-600", name: `${user?.name || "You"} (You)` },
-                  { initials: "AI", bg: "bg-cyan-600", name: "Gemini Copilot" }
-                ].map((av, idx) => (
-                  <div key={idx} title={`${av.name} is active`}
-                    className={`w-5 h-5 rounded-full ${av.bg} flex items-center justify-center text-[9px] font-bold text-white border border-[#10121b]`}
-                    style={{ marginLeft: idx > 0 ? -5 : 0 }}>
-                    {av.initials}
-                  </div>
-                ))}
+            {/* Real round-trip latency of the last save (hidden until one happens) */}
+            {sync.latencyMs !== null && (
+              <div title="Round-trip time of your last save" style={{ fontSize: 10.5, fontFamily: "monospace", color: sync.latencyMs < 400 ? C.emerald : C.amber, background: "rgba(255,255,255,0.04)", padding: "2px 7px", borderRadius: 4, border: `1px solid ${C.border}` }}>
+                {sync.latencyMs} ms
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: C.emerald, background: "rgba(16, 185, 129, 0.1)", padding: "2px 7px", borderRadius: 4, border: "1px solid rgba(16, 185, 129, 0.25)" }}>
-                ● 18ms
-              </div>
-            </div>
+            )}
 
             <div style={{ width: 1, height: 14, background: C.border }} />
 
-            {/* Autosave Status Indicator */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontFamily: "monospace", color: saveStatus === "Saved" ? C.emerald : saveStatus === "Saving..." ? C.amber : C.rose }}>
-              {saveStatus === "Saved" ? <Check size={11} /> : saveStatus === "Saving..." ? <RefreshCw size={10} style={{ animation: "spin 1s linear infinite" }} /> : null}
-              <span>{saveStatus}</span>
-            </div>
+            {/* Autosave status — reflects what the server actually confirmed */}
+            {(() => {
+              const map = {
+                saved:    { label: "Saved",              color: C.emerald },
+                saving:   { label: "Saving…",            color: C.amber },
+                retrying: { label: "Offline — retrying", color: C.amber },
+                conflict: { label: "Edited elsewhere",   color: C.rose },
+                error:    { label: "Not saved",          color: C.rose },
+              } as const;
+              const m = map[sync.state];
+              return (
+                <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontFamily: "monospace", color: m.color }}>
+                  {sync.state === "saved" ? <Check size={11} /> : sync.state === "saving" || sync.state === "retrying" ? <RefreshCw size={10} style={{ animation: "spin 1s linear infinite" }} /> : <AlertTriangle size={11} />}
+                  <span>{m.label}</span>
+                  {sync.state === "error" && (
+                    <button onClick={sync.retryNow} style={{ marginLeft: 4, background: "none", border: `1px solid ${C.border}`, borderRadius: 4, color: C.textPrimary, fontSize: 10.5, padding: "1px 6px", cursor: "pointer" }}>Retry</button>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ width: 1, height: 14, background: C.border }} />
 
-            {/* Share Link Action */}
             <button
-              onClick={handleShareClick}
-              style={{
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "4px 8px", borderRadius: 5, fontSize: 11.5, fontWeight: 500,
-                background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`,
-                color: C.textSecondary, cursor: "pointer", transition: "all 0.12s"
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = C.textPrimary; e.currentTarget.style.borderColor = C.borderFocus; }}
-              onMouseLeave={e => { e.currentTarget.style.color = C.textSecondary; e.currentTarget.style.borderColor = C.border; }}
+              onClick={() => setShowHistory(true)}
+              disabled={!activeDoc}
+              title="Version history"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: 5, fontSize: 11.5, fontWeight: 500, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textSecondary, cursor: "pointer" }}
             >
-              <Share2 size={12} />
-              <span>Share</span>
+              <History size={12} /><span>History</span>
+            </button>
+
+            <button
+              onClick={handleExport}
+              disabled={!activeDoc}
+              title="Download this page as HTML"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: 5, fontSize: 11.5, fontWeight: 500, background: "rgba(255,255,255,0.03)", border: `1px solid ${C.border}`, color: C.textSecondary, cursor: "pointer" }}
+            >
+              <Download size={12} /><span>Export</span>
             </button>
 
             {/* Ask AI Action */}
@@ -843,25 +902,15 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
           </div>
         </header>
 
-        {/* ── Share Copied Notification Toast ── */}
-        <AnimatePresence>
-          {showShareToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-              style={{
-                position: "absolute", top: 56, right: 24, zIndex: 100,
-                padding: "7px 14px", borderRadius: 6,
-                background: C.card, border: `1px solid ${C.borderFocus}`,
-                color: C.textPrimary, fontSize: 11.5, fontWeight: 500,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-                display: "flex", alignItems: "center", gap: 6
-              }}
-            >
-              <CheckCheck size={13} style={{ color: C.emerald }} />
-              <span>Link copied to clipboard</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ── Conflict banner ── */}
+        {conflictDoc && (
+          <div role="alert" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", background: "rgba(244,63,94,0.1)", borderBottom: "1px solid rgba(244,63,94,0.3)", fontSize: 12.5, color: C.textPrimary }}>
+            <AlertTriangle size={14} style={{ color: C.rose }} />
+            <span>This page was changed in another tab or device. Your latest edits are not saved yet.</span>
+            <button onClick={loadServerVersion} style={{ marginLeft: "auto", padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.border}`, background: "transparent", color: C.textPrimary, cursor: "pointer", fontSize: 12 }}>Load their version</button>
+            <button onClick={keepMyVersion} style={{ padding: "3px 10px", borderRadius: 5, border: 0, background: C.cobalt, color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Keep mine</button>
+          </div>
+        )}
 
         {/* ══ 3. DYNAMIC WORKSPACE CONTENT ══ */}
         {activeDoc ? (
@@ -1159,7 +1208,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
                   {/* Rich TipTap Block Canvas */}
                   <div style={{ flex: 1, fontSize: 15, lineHeight: 1.7, color: "#d1d5db" }}>
                     <BlockEditor
-                      key={getDocId(activeDoc)}
+                      key={`${getDocId(activeDoc)}-${editorNonce}`}
                       content={activeDoc.content}
                       onChange={handleContentChange}
                       onAskAI={(selected) => {
@@ -1492,6 +1541,41 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({ user, on
       </div>
 
       {/* ── Search Modal ── */}
+      <ServerWakeBanner />
+
+      {showHistory && activeDoc && (
+        <VersionHistoryModal
+          docId={getDocId(activeDoc)}
+          getHeaders={getAuthHeaders}
+          onClose={() => setShowHistory(false)}
+          onRestored={(restored) => {
+            const r = restored as WorkspaceDoc;
+            const id = getDocId(r);
+            sync.discard(id);
+            sync.setVersion(id, r.version);
+            setDocuments(prev => prev.map(d => getDocId(d) === id ? { ...d, ...r } : d));
+            setActiveDoc(r);
+            setEditorNonce(n => n + 1);
+            showToast("Version restored");
+          }}
+        />
+      )}
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            style={{ position: "fixed", bottom: 24, left: "50%", x: "-50%", zIndex: 110, display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderRadius: 9, background: C.card, border: `1px solid ${C.borderFocus}`, color: C.textPrimary, fontSize: 12.5, boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}
+          >
+            <span>{toast.msg}</span>
+            {toast.actionLabel && toast.onAction && (
+              <button onClick={toast.onAction} style={{ background: "none", border: 0, color: C.cobaltGlow, fontWeight: 700, cursor: "pointer", fontSize: 12.5 }}>{toast.actionLabel}</button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
