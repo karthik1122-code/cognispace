@@ -1,114 +1,179 @@
-import { ArrowRight, Check, Command, History, KanbanSquare, Moon, PenLine, ShieldCheck, Sparkles, Sun, Zap } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Moon, Sun } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { ProductShot } from '../components/landing/ProductShot';
+import { BoardIllustration, CopilotIllustration, HistoryIllustration, SlashIllustration } from '../components/landing/Illustrations';
 import { useTheme } from '../hooks/useTheme';
+import { cn } from '../lib/cn';
 
 interface Props {
   onGetStarted: () => void;
   onLogin: () => void;
 }
 
-const FEATURES = [
-  { icon: PenLine, title: 'A block editor that stays out of the way', body: 'Type “/” for headings, to-dos, toggles and code. Keyboard first, with autosave you can trust.' },
-  { icon: Sparkles, title: 'Copilot that edits alongside you', body: 'Highlight text to improve or summarize it, or ask Copilot to write from the page you are on. Review, insert, undo.' },
-  { icon: KanbanSquare, title: 'A sprint board in the same place', body: 'Drag tasks across Backlog, In Progress, In Review and Done. Switch to a table when you need to scan.' },
-  { icon: History, title: 'Version history with one-click restore', body: 'Snapshots are saved as you write. Restoring keeps your current text in history, so nothing is lost.' },
-  { icon: ShieldCheck, title: 'Saves that tell the truth', body: 'The status only says “Saved” after the server confirms. Offline? It retries. Edited in another tab? It asks you first.' },
-  { icon: Command, title: 'Jump anywhere with ⌘K', body: 'Search every page by title or content, create pages, switch theme and run commands without leaving the keyboard.' },
+const ROWS = [
+  {
+    fig: 'Fig 0.1', label: 'Editor', title: 'Write at the speed of thought.',
+    body: 'Type “/” for headings, to-dos, toggles and code. Everything is a keyboard shortcut away, and autosave only says “Saved” when the server confirms it.',
+    art: <SlashIllustration />,
+  },
+  {
+    fig: 'Fig 0.2', label: 'Copilot', title: 'AI that edits the page you are on.',
+    body: 'Highlight text to improve or summarize it, or ask Copilot to write from your page. You review the result, insert it, and undo it in one click.',
+    art: <CopilotIllustration />,
+  },
+  {
+    fig: 'Fig 0.3', label: 'Sprints', title: 'Plan the work next to the writing.',
+    body: 'A drag-and-drop board for Backlog, In Progress, In Review and Done, with a table view when you need to scan and sort.',
+    art: <BoardIllustration />,
+  },
+  {
+    fig: 'Fig 0.4', label: 'History', title: 'Nothing you write is ever lost.',
+    body: 'Snapshots are saved as you work. Restore an older version in one click, and your current text stays in history in case you change your mind.',
+    art: <HistoryIllustration />,
+  },
+];
+
+const SHIPPED = [
+  { tag: 'Reliability', title: 'Saves that tell the truth', body: 'Offline edits retry automatically. If another tab changed the page, you choose which version wins.' },
+  { tag: 'Safety', title: 'Undo for deletes and AI inserts', body: 'Delete a page or insert AI text, then take it back within seconds.' },
+  { tag: 'Speed', title: 'Command palette', body: 'Search every page by title or content and run commands with ⌘K.' },
+];
+
+const SHORTCUTS: [string[], string][] = [
+  [['⌘', 'K'], 'Search and commands'],
+  [['/'], 'Insert a block'],
+  [['⌘', 'J'], 'Open Copilot'],
+  [['⌘', 'B'], 'Toggle sidebar'],
 ];
 
 export function LandingPage({ onGetStarted, onLogin }: Props) {
-  const { theme, toggle } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-app text-fg">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[700px] bg-[linear-gradient(rgb(var(--fg)/0.04)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.04)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(70%_60%_at_50%_0%,#000,transparent)]" />
+      {/* Announcement */}
+      <a href="#shipped" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
+        <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide text-accent">New</span>
+        Version history, undo and honest autosave <ArrowRight size={12} />
+      </a>
 
-      <header className="sticky top-0 z-40 border-b border-line bg-app/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[1120px] items-center justify-between px-5">
+      <header className="sticky top-0 z-40 border-b border-line bg-app/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-5">
           <Logo />
-          <nav className="hidden items-center gap-7 text-[13.5px] text-muted md:flex" aria-label="Primary">
-            <a href="#features" className="hover:text-fg">Features</a>
-            <a href="#keyboard" className="hover:text-fg">Shortcuts</a>
+          <nav className="hidden items-center gap-6 text-[13.5px] text-muted md:flex" aria-label="Primary">
+            <a href="#product" className="transition-colors hover:text-fg">Product</a>
+            <a href="#shipped" className="transition-colors hover:text-fg">Shipped</a>
+            <a href="#keyboard" className="transition-colors hover:text-fg">Shortcuts</a>
           </nav>
           <div className="flex items-center gap-2">
-            <button onClick={toggle} aria-label="Toggle theme" className="btn-ghost h-8 w-8 !px-0">{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}</button>
             <button onClick={onLogin} className="btn-ghost">Log in</button>
-            <button onClick={onGetStarted} className="btn-primary">Get started</button>
+            <button onClick={onGetStarted} className="btn-primary">Sign up</button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative mx-auto max-w-[1120px] px-5 pb-20 pt-20 text-center sm:pt-28">
-          <a href="#features" className="mx-auto mb-7 inline-flex animate-fade-up items-center gap-2 rounded-full border border-line-strong bg-fg/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-muted hover:text-fg">
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-fg">New</span> Version history and honest autosave <ArrowRight size={12} />
-          </a>
-          <h1 className="mx-auto max-w-[820px] animate-fade-up text-balance text-[44px] font-bold leading-[1.04] tracking-[-0.045em] sm:text-[68px]" style={{ animationDelay: '60ms' }}>
-            The calm workspace where <span className="bg-gradient-to-r from-[#8270ff] via-[#b36bff] to-[#ff7ac6] bg-clip-text text-transparent">writing meets shipping</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-[580px] animate-fade-up text-balance text-[17px] leading-relaxed text-muted" style={{ animationDelay: '120ms' }}>
-            Notes, docs and a sprint board in one fast app, with an AI Copilot that works on the page you have open.
-          </p>
-          <div className="mt-9 flex animate-fade-up flex-wrap items-center justify-center gap-3" style={{ animationDelay: '180ms' }}>
-            <button onClick={onGetStarted} className="btn-primary !h-11 !rounded-xl !px-6 !text-[15px]">Start for free <ArrowRight size={16} /></button>
-            <button onClick={onLogin} className="btn-outline !h-11 !rounded-xl !px-6 !text-[15px]">Log in</button>
-          </div>
-          <p className="mt-4 text-[12.5px] text-faint">No credit card. Your pages are private to your account.</p>
-
-          <div className="mt-16 animate-fade-up" style={{ animationDelay: '260ms' }}><ProductShot /></div>
-        </section>
-
-        <section id="features" className="mx-auto max-w-[1120px] scroll-mt-20 px-5 py-20">
-          <div className="mb-12 max-w-[560px]">
-            <p className="mb-3 text-[13px] font-medium text-accent">Everything in one place</p>
-            <h2 className="text-balance text-[34px] font-bold leading-tight tracking-[-0.035em] sm:text-[42px]">Built for the way you actually work</h2>
-          </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <article key={title} className="group bg-app p-7 transition-colors hover:bg-surface">
-                <span className="mb-5 grid h-10 w-10 place-items-center rounded-xl border border-line-strong bg-fg/[0.03] text-accent transition group-hover:border-accent/50 group-hover:shadow-glow"><Icon size={18} /></span>
-                <h3 className="mb-2 text-[16px] font-semibold tracking-tight">{title}</h3>
-                <p className="text-[14px] leading-relaxed text-muted">{body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="keyboard" className="mx-auto max-w-[1120px] scroll-mt-20 px-5 py-16">
-          <div className="grid items-center gap-10 rounded-3xl border border-line bg-surface p-8 sm:p-12 lg:grid-cols-2">
-            <div>
-              <span className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent"><Zap size={14} /> Keyboard first</span>
-              <h2 className="text-balance text-[30px] font-bold leading-tight tracking-[-0.03em] sm:text-[36px]">Never reach for the mouse</h2>
-              <p className="mt-3 max-w-[420px] text-[15px] leading-relaxed text-muted">Every action is a few keystrokes away. Learn four shortcuts and the rest is discoverable from the command palette.</p>
+        {/* Hero */}
+        <section className="relative border-b border-line">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--fg)/0.035)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(60%_70%_at_50%_0%,#000,transparent)]" />
+          <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(var(--accent)/0.22),transparent)]" />
+          <div className="relative mx-auto max-w-[1200px] px-5 pb-24 pt-24 text-center sm:pt-32">
+            <h1 className="mx-auto max-w-[900px] animate-fade-up text-balance text-[44px] font-semibold leading-[1.02] tracking-[-0.05em] sm:text-[76px]">
+              The workspace for writing and shipping.
+              <span className="text-muted"> Notes, docs and sprints, with AI that edits alongside you.</span>
+            </h1>
+            <div className="mt-10 flex animate-fade-up flex-wrap items-center justify-center gap-3" style={{ animationDelay: '120ms' }}>
+              <button onClick={onGetStarted} className="btn-primary !h-11 !rounded-full !px-6 !text-[14.5px]">Start building <ArrowRight size={15} /></button>
+              <button onClick={onLogin} className="btn-outline !h-11 !rounded-full !px-6 !text-[14.5px]">Log in</button>
             </div>
-            <ul className="space-y-2.5">
-              {[['⌘ K', 'Search pages and run commands'], ['/', 'Insert a block while writing'], ['⌘ J', 'Open Copilot'], ['⌘ B', 'Toggle the sidebar']].map(([k, d]) => (
-                <li key={k} className="flex items-center justify-between rounded-xl border border-line bg-app px-4 py-3">
-                  <span className="text-[14px] text-muted">{d}</span>
-                  <span className="flex gap-1">{k.split(' ').map((x) => <kbd key={x} className="kbd !h-6 !min-w-[24px] !text-[12px]">{x}</kbd>)}</span>
+            <p className="mt-5 font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint">Free to try · Private to your account</p>
+          </div>
+        </section>
+
+        {/* Product */}
+        <section id="product" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-[1200px] px-5 py-20">
+            <div className="animate-fade-up"><ProductShot /></div>
+            <p className="mt-5 text-center font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint">Fig 0 — Page, Copilot and sidebar</p>
+          </div>
+        </section>
+
+        {/* Feature rows */}
+        {ROWS.map((r, i) => (
+          <section key={r.fig} className="border-b border-line">
+            <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:gap-20">
+              <div className={cn(i % 2 === 1 && 'lg:order-2')}>
+                <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">{r.fig} · {r.label}</p>
+                <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">
+                  {r.title}
+                </h2>
+                <p className="mt-4 max-w-[460px] text-[16px] leading-relaxed text-muted">{r.body}</p>
+                <button onClick={onGetStarted} className="group mt-6 inline-flex items-center gap-1 text-[14px] font-medium text-fg">
+                  Try it <ArrowUpRight size={15} className="text-faint transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg" />
+                </button>
+              </div>
+              <div className={cn(i % 2 === 1 && 'lg:order-1')}>{r.art}</div>
+            </div>
+          </section>
+        ))}
+
+        {/* Shipped */}
+        <section id="shipped" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-[1200px] px-5 py-20">
+            <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Recently shipped</p>
+            <h2 className="mb-10 max-w-[560px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">Small details that make it feel solid.</h2>
+            <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
+              {SHIPPED.map((s) => (
+                <article key={s.title} className="bg-app p-7 transition-colors hover:bg-surface">
+                  <span className="mb-10 inline-block font-mono text-[11px] uppercase tracking-[0.12em] text-faint">{s.tag}</span>
+                  <h3 className="text-[17px] font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-muted">{s.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Shortcuts */}
+        <section id="keyboard" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-20 lg:grid-cols-2">
+            <div>
+              <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
+              <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">Learn four shortcuts. Never reach for the mouse.</h2>
+            </div>
+            <ul className="divide-y divide-line rounded-2xl border border-line">
+              {SHORTCUTS.map(([keys, d]) => (
+                <li key={d} className="flex items-center justify-between px-5 py-4">
+                  <span className="text-[15px] text-muted">{d}</span>
+                  <span className="flex gap-1">{keys.map((k) => <kbd key={k} className="kbd !h-7 !min-w-[28px] !text-[13px]">{k}</kbd>)}</span>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1120px] px-5 pb-28 pt-12">
-          <div className="relative overflow-hidden rounded-3xl border border-line-strong bg-surface px-6 py-16 text-center">
-            <div className="absolute inset-0 -z-0 bg-[radial-gradient(50%_80%_at_50%_100%,rgb(var(--accent)/0.28),transparent)]" />
-            <h2 className="relative text-balance text-[32px] font-bold tracking-[-0.035em] sm:text-[44px]">Start writing in under a minute</h2>
-            <ul className="relative mx-auto mt-5 flex max-w-[560px] flex-wrap justify-center gap-x-5 gap-y-2 text-[13.5px] text-muted">
-              {['Free to try', 'Dark and light themes', 'Export any page'].map((t) => <li key={t} className="flex items-center gap-1.5"><Check size={14} className="text-ok" />{t}</li>)}
-            </ul>
-            <button onClick={onGetStarted} className="btn-primary relative mt-8 !h-11 !rounded-xl !px-7 !text-[15px]">Create your workspace <ArrowRight size={16} /></button>
+        {/* Final CTA */}
+        <section className="relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[360px] bg-[radial-gradient(50%_100%_at_50%_100%,rgb(var(--accent)/0.2),transparent)]" />
+          <div className="relative mx-auto max-w-[1200px] px-5 py-28 text-center">
+            <h2 className="mx-auto max-w-[680px] text-balance text-[38px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[56px]">Start with a blank page.</h2>
+            <div className="mt-8 flex justify-center gap-3">
+              <button onClick={onGetStarted} className="btn-primary !h-11 !rounded-full !px-6 !text-[14.5px]">Create your workspace <ArrowRight size={15} /></button>
+            </div>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-3 px-5 py-8 text-[13px] text-faint">
-          <Logo size={20} />
-          <span>Built by Karthik Uppari · React, Express, MongoDB, Gemini</span>
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-8 text-[13px] text-faint">
+          <div className="flex items-center gap-4"><Logo size={20} /><span>Built by Karthik Uppari</span></div>
+          <div className="flex items-center gap-1 rounded-full border border-line p-0.5" role="radiogroup" aria-label="Theme">
+            {([['light', Sun], ['dark', Moon]] as const).map(([k, Icon]) => (
+              <button key={k} role="radio" aria-checked={theme === k} aria-label={`${k} theme`} onClick={() => setTheme(k)} className={cn('grid h-7 w-7 place-items-center rounded-full', theme === k ? 'bg-fg/10 text-fg' : 'hover:text-fg')}>
+                <Icon size={13} />
+              </button>
+            ))}
+          </div>
         </div>
       </footer>
     </div>
