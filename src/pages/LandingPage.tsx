@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { RotatingWords, ScrollProgress, SplitWords, SpotlightCard, staggerChild, staggerParent } from '../components/ui/motion';
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, X, Zap } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, Moon, Sun, X } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { LiveDemo } from '../components/landing/LiveDemo';
 import { FeatureScroll } from '../components/landing/FeatureScroll';
+import { FeatureBento } from '../components/landing/FeatureBento';
 import { BoardIllustration, CopilotIllustration, HistoryIllustration, SlashIllustration } from '../components/landing/Illustrations';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/cn';
@@ -65,15 +66,6 @@ const FAQ = [
   { q: 'Is it real-time multiplayer?', a: 'Not yet. Today it is a fast single-player workspace with safe autosave and conflict handling. Collaboration is on the roadmap.' },
 ];
 
-const BENTO = [
-  { icon: Zap, title: 'Block editor', body: 'Type “/” for headings, lists, toggles and code. Select text for a formatting toolbar.', span: 'md:col-span-2' },
-  { icon: Sparkles, title: 'Copilot', body: 'Improve, shorten or write from the page you are on.', span: '' },
-  { icon: KanbanSquare, title: 'Sprint board', body: 'Drag tasks between Backlog, In Progress, In Review and Done.', span: '' },
-  { icon: History, title: 'Version history', body: 'Snapshots as you write. Restore any version in one click.', span: '' },
-  { icon: Undo2, title: 'Undo everything', body: 'Take back deletes and AI inserts within seconds.', span: '' },
-  { icon: Search, title: 'Command palette', body: 'Search every page and run commands with ⌘K.', span: 'md:col-span-2' },
-  { icon: ShieldCheck, title: 'Private by default', body: 'Per-account data, hashed passwords, rate limits and security headers.', span: '' },
-];
 
 const REPO = 'https://github.com/karthik1122-code/cognispace';
 
@@ -187,17 +179,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Features</p>
             <h2 className="max-w-[640px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Everything you need to think, plan and ship.</h2>
-            <motion.div variants={staggerParent} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }} className="mt-12 grid gap-4 md:grid-cols-3">
-              {BENTO.map(({ icon: Icon, title, body, span }) => (
-                <motion.div key={title} variants={staggerChild} className={span}>
-                <SpotlightCard className="h-full rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40">
-                  <span className="mb-10 grid h-10 w-10 place-items-center rounded-xl border border-line bg-fg/[0.04] text-accent"><Icon size={18} /></span>
-                  <h3 className="text-[18px] font-semibold tracking-tight">{title}</h3>
-                  <p className="mt-2 max-w-[420px] text-[14.5px] leading-relaxed text-muted">{body}</p>
-                </SpotlightCard>
-                </motion.div>
-              ))}
-            </motion.div>
+            <FeatureBento />
           </div>
         </section>
 
@@ -209,15 +191,18 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">How it works</p>
             <h2 className="max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">From blank page to done in three steps.</h2>
-            <ol className="mt-12 grid gap-4 md:grid-cols-3">
-              {STEPS.map((s) => (
-                <li key={s.n} className="rounded-2xl border border-line bg-surface p-7">
-                  <span className="text-gradient-accent font-mono text-[34px] font-semibold tracking-tight">{s.n}</span>
-                  <h3 className="mt-6 text-[18px] font-semibold tracking-tight">{s.title}</h3>
-                  <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
-                </li>
-              ))}
-            </ol>
+            <div className="relative mt-14">
+              <div aria-hidden className="absolute left-[16%] right-[16%] top-[26px] hidden h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent md:block" />
+              <ol className="relative grid gap-5 md:grid-cols-3">
+                {STEPS.map((s, i) => (
+                  <motion.li key={s.n} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.6, delay: i * 0.12, ease: [0.2, 0.7, 0.2, 1] }} className="card-soft group rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-1 hover:border-accent/40">
+                    <span className="relative z-10 mb-8 grid h-[52px] w-[52px] place-items-center rounded-2xl bg-accent font-mono text-[16px] font-semibold text-accent-fg shadow-[0_10px_24px_-8px_rgb(var(--accent)/.7)] transition-transform duration-300 group-hover:scale-105">{s.n}</span>
+                    <h3 className="text-[20px] font-semibold tracking-tight">{s.title}</h3>
+                    <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
+                  </motion.li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 
@@ -226,10 +211,10 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Recently shipped</p>
             <h2 className="mb-10 max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Small details that make it feel solid.</h2>
-            <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               {SHIPPED.map((s) => (
-                <article key={s.title} className="bg-app p-7 transition-colors hover:bg-surface">
-                  <span className="mb-10 inline-block font-mono text-[11px] uppercase tracking-[0.12em] text-faint">{s.tag}</span>
+                <article key={s.title} className="card-soft rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40">
+                  <span className="mb-10 inline-block rounded-full bg-accent/12 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-accent">{s.tag}</span>
                   <h3 className="text-[17px] font-semibold tracking-tight">{s.title}</h3>
                   <p className="mt-2 text-[14px] leading-relaxed text-muted">{s.body}</p>
                 </article>
@@ -245,7 +230,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
               <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
               <h2 className="max-w-[460px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">Learn four shortcuts. Never reach for the mouse.</h2>
             </div>
-            <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
+            <ul className="card-soft divide-y divide-line rounded-2xl border border-line bg-surface">
               {SHORTCUTS.map(([keys, d]) => (
                 <li key={d} className="flex items-center justify-between px-5 py-4">
                   <span className="text-[15px] text-muted">{d}</span>
@@ -263,7 +248,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
               <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">FAQ</p>
               <h2 className="max-w-[360px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">Straight answers.</h2>
             </div>
-            <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+            <div className="card-soft divide-y divide-line rounded-2xl border border-line bg-surface">
               {FAQ.map((f, i) => (
                 <div key={f.q}>
                   <button onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i} className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left text-[16px] font-medium">
@@ -278,13 +263,17 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         </section>
 
         {/* Final CTA */}
-        <section className="relative overflow-hidden">
-          <div className="aurora pointer-events-none absolute inset-x-0 bottom-0 h-[420px] opacity-70" />
-          <div className="relative mx-auto max-w-[1200px] px-5 py-32 text-center">
-            <h2 className="mx-auto max-w-[760px] text-balance text-[40px] font-semibold leading-[1.02] tracking-[-0.05em] sm:text-[64px]"><span className="text-gradient">Start with a</span> <span className="text-gradient-accent">blank page.</span></h2>
-            <p className="mx-auto mt-5 max-w-[480px] text-[16px] text-muted">Create your workspace in under a minute. Free while in beta.</p>
-            <div className="mt-8 flex justify-center gap-3">
-              <button onClick={onGetStarted} className="btn-primary !h-12 !rounded-full !px-7 !text-[15px]">Create your workspace <ArrowRight size={16} /></button>
+        <section className="px-5 pb-24 pt-8">
+          <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[32px] border border-line bg-surface px-6 py-24 text-center card-soft">
+            <div className="aurora pointer-events-none absolute inset-0 opacity-70" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--fg)/0.04)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(60%_80%_at_50%_50%,#000,transparent)]" />
+            <div className="relative">
+              <h2 className="mx-auto max-w-[760px] text-balance text-[40px] font-semibold leading-[1.02] tracking-[-0.05em] sm:text-[64px]"><span className="text-gradient">Start with a</span> <span className="text-gradient-accent">blank page.</span></h2>
+              <p className="mx-auto mt-5 max-w-[480px] text-[16px] text-muted">Create your workspace in under a minute. Free while in beta.</p>
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <button onClick={onGetStarted} className="btn-primary btn-shine !h-12 !rounded-full !px-7 !text-[15px]">Create your workspace <ArrowRight size={16} /></button>
+                <a href={REPO} target="_blank" rel="noreferrer" className="btn-outline !h-12 !rounded-full !px-6 !text-[15px]"><GitBranch size={15} /> View source</a>
+              </div>
             </div>
           </div>
         </section>
