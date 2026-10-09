@@ -5,7 +5,7 @@ import { SpotlightCard, staggerChild, staggerParent } from '../ui/motion';
 import { cn } from '../../lib/cn';
 
 /** Types a string out once the element is on screen. Shows the full text under reduced motion. */
-function Typed({ text, speed = 22, className }: { text: string; speed?: number; className?: string }) {
+export function Typed({ text, speed = 22, className }: { text: string; speed?: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const seen = useInView(ref, { once: true, margin: '-60px' });
   const reduce = useReducedMotion();

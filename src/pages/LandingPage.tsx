@@ -6,6 +6,7 @@ import { Logo } from '../components/landing/Logo';
 import { LiveDemo } from '../components/landing/LiveDemo';
 import { FeatureScroll } from '../components/landing/FeatureScroll';
 import { FeatureBento } from '../components/landing/FeatureBento';
+import { HowItWorks, Shipped, Shortcuts } from '../components/landing/Sections';
 import { BoardIllustration, CopilotIllustration, HistoryIllustration, SlashIllustration } from '../components/landing/Illustrations';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/cn';
@@ -191,18 +192,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">How it works</p>
             <h2 className="max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">From blank page to done in three steps.</h2>
-            <div className="relative mt-14">
-              <div aria-hidden className="absolute left-[16%] right-[16%] top-[26px] hidden h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent md:block" />
-              <ol className="relative grid gap-5 md:grid-cols-3">
-                {STEPS.map((s, i) => (
-                  <motion.li key={s.n} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.6, delay: i * 0.12, ease: [0.2, 0.7, 0.2, 1] }} className="card-soft group rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-1 hover:border-accent/40">
-                    <span className="relative z-10 mb-8 grid h-[52px] w-[52px] place-items-center rounded-2xl bg-accent font-mono text-[16px] font-semibold text-accent-fg shadow-[0_10px_24px_-8px_rgb(var(--accent)/.7)] transition-transform duration-300 group-hover:scale-105">{s.n}</span>
-                    <h3 className="text-[20px] font-semibold tracking-tight">{s.title}</h3>
-                    <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
-                  </motion.li>
-                ))}
-              </ol>
-            </div>
+            <HowItWorks steps={STEPS} />
           </div>
         </section>
 
@@ -211,33 +201,16 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Recently shipped</p>
             <h2 className="mb-10 max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Small details that make it feel solid.</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              {SHIPPED.map((s) => (
-                <article key={s.title} className="card-soft rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40">
-                  <span className="mb-10 inline-block rounded-full bg-accent/12 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-accent">{s.tag}</span>
-                  <h3 className="text-[17px] font-semibold tracking-tight">{s.title}</h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-muted">{s.body}</p>
-                </article>
-              ))}
-            </div>
+            <Shipped items={SHIPPED} />
           </div>
         </section>
 
         {/* Shortcuts */}
         <section id="keyboard" className="scroll-mt-20 border-b border-line bg-fg/[0.02]">
-          <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-24 lg:grid-cols-2">
-            <div>
-              <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
-              <h2 className="max-w-[460px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">Learn four shortcuts. Never reach for the mouse.</h2>
-            </div>
-            <ul className="card-soft divide-y divide-line rounded-2xl border border-line bg-surface">
-              {SHORTCUTS.map(([keys, d]) => (
-                <li key={d} className="group flex items-center justify-between px-6 py-5 transition-colors hover:bg-accent/[0.05]">
-                  <span className="text-[16px] text-muted transition-colors group-hover:text-fg">{d}</span>
-                  <span className="flex gap-1.5">{keys.map((k) => <kbd key={k} className="kbd !h-9 !min-w-[36px] !rounded-lg !text-[15px] shadow-[0_2px_0_rgb(var(--fg)/0.12)] transition-transform group-hover:-translate-y-0.5">{k}</kbd>)}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="mx-auto max-w-[1200px] px-5 py-24">
+            <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
+            <h2 className="mb-12 max-w-[640px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Learn four shortcuts. Never reach for the mouse.</h2>
+            <Shortcuts items={SHORTCUTS} />
           </div>
         </section>
 
@@ -304,6 +277,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
             </div>
           ))}
         </div>
+        <div aria-hidden className="pointer-events-none select-none overflow-hidden px-5 text-center text-[clamp(72px,17vw,250px)] font-semibold leading-[0.82] tracking-[-0.07em] text-outline [mask-image:linear-gradient(#000_20%,transparent_95%)]">CogniSpace</div>
         <div className="border-t border-line">
           <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-6 text-[12.5px] text-faint">
             <span>© {new Date().getFullYear()} CogniSpace. Released under the MIT license.</span>
