@@ -138,7 +138,7 @@ function SceneBoard({ lt }: { lt: number }) {
   const dropped = lt >= 3900;
   const k = smooth(drag);
   const col = 1 + 2 * k;                       // fractional column index (1 → 3)
-  const top = 78 + 40 * Math.sin(k * Math.PI) * -0.6 + (dropped ? 0 : 0);
+  const top = 168 - 26 * Math.sin(k * Math.PI);
   const card = (t: string, tag: string, tone: string, extra?: string) => (
     <div className={cn('rounded-lg border border-line bg-surface p-2.5 text-[12.5px] shadow-sm', extra)}>
       <div className="mb-1.5 font-medium text-fg/90">{t}</div>
@@ -169,8 +169,9 @@ function SceneBoard({ lt }: { lt: number }) {
         ))}
       </div>
       {dragging && (
-        <div className="pointer-events-none absolute z-10 w-[calc(25%-26px)]" style={{ left: `calc(24px + ${col} * (25% - 5px))`, top: `${top + 70}px`, transform: `rotate(${(1 - Math.abs(k - 0.5) * 2) * 3}deg) scale(1.04)` }}>
+        <div className="pointer-events-none absolute z-10" style={{ width: 'calc((100% - 84px) / 4)', left: `calc(24px + ${col} * ((100% - 36px) / 4))`, top: `${top}px`, transform: `rotate(${(1 - Math.abs(k - 0.5) * 2) * 3}deg) scale(1.04)` }}>
           {card('Polish landing page', 'Design', 'bg-accent/15 text-accent', 'shadow-pop ring-1 ring-accent/60')}
+          <svg width="20" height="20" viewBox="0 0 24 24" className="absolute -bottom-3 left-[55%] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"><path d="M4 2l15 9-6.5 1.5L9 19z" fill="white" stroke="#111" strokeWidth="1.4" strokeLinejoin="round" /></svg>
         </div>
       )}
     </div>
@@ -213,10 +214,9 @@ function HistoryPanel({ lt }: { lt: number }) {
 /* ───────────── Cursor + toast per scene ───────────── */
 const CURSOR: Record<number, Pt[]> = {
   1: [[3200, 0.82, 0.55], [4500, 0.87, 0.82], [4900, 0.87, 0.83]],
-  2: [[1000, 0.3, 0.7], [1700, 0.34, 0.5], [3900, 0.9, 0.55]],
   3: [[1200, 0.8, 0.45], [2400, 0.86, 0.6], [3500, 0.86, 0.5], [4500, 0.9, 0.84], [5100, 0.88, 0.84]],
 };
-const CLICKS: Record<number, number[]> = { 1: [4750], 2: [1500, 3900], 3: [2350, 5000] };
+const CLICKS: Record<number, number[]> = { 1: [4750], 3: [2350, 5000] };
 
 function Toast({ lt, scene }: { lt: number; scene: number }) {
   const msg = scene === 1 && show(lt, 5100, 7600) ? ['Inserted into page', 'Undo'] : scene === 3 && show(lt, 3700, 6800) ? ['Restored. Your previous text is saved in history.', 'Undo'] : scene === 2 && show(lt, 4000, 6000) ? ['Moved to Done', 'Undo'] : null;
@@ -287,7 +287,7 @@ export function LiveDemo({ onPlayVideo }: { onPlayVideo?: () => void }) {
   const pages = ['Q4 launch plan', 'Meeting notes', 'Roadmap', 'Journal'];
 
   return (
-    <div className="mx-auto w-full max-w-[1040px]">
+    <div className="mx-auto w-full max-w-[1040px] text-left">
       <div ref={wrap} className="relative w-full" style={{ height: H * scale + 2 }} aria-hidden>
         <div className="absolute left-0 top-0 origin-top-left" style={{ width: W, height: H, transform: `scale(${scale})` }}>
           <div className="relative h-full w-full overflow-hidden rounded-2xl border border-line-strong bg-app shadow-[0_40px_120px_-20px_rgb(0_0_0/0.6)]">
