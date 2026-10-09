@@ -20,7 +20,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distPath = path.resolve(__dirname, "../dist");
 
-dotenv.config();
+dotenv.config(); // repo-root .env
+dotenv.config({ path: path.resolve(__dirname, ".env") }); // server/.env (does not override)
 
 // ── Configuration ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
@@ -168,7 +169,16 @@ const requireAuth = (req, res, next) => {
 
 // ── Express App Setup ──────────────────────────────────────────────────────
 const app = express();
+app.disable("x-powered-by");
 app.set("trust proxy", 1); // Render sits behind a proxy; needed for correct client IPs in rate limiting
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (IS_PROD) res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+  next();
+});
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
@@ -316,6 +326,45 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
     res.json({ user: { id: user._id.toString(), name: user.name, email: user.email } });
   } catch (err) {
     res.status(500).json({ error: "Server error fetching user session." });
+  }
+});
+
+// DELETE /api/auth/me — permanently deletes the account and all of its data.
+// Requires the current password so a stolen session cannot wipe an account.
+app.delete("/api/auth/me", requireAuth, authLimiter, async (req, res) => {
+  try {
+    const { password } = req.body || {};
+    if (typeof password !== "string" || !password) return res.status(400).json({ error: "Enter your password to confirm." });
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    if (!(await bcrypt.compare(password, user.password))) return res.status(401).json({ error: "Incorrect password." });
+
+    await Promise.all([
+      DocumentVersion.deleteMany({ userId: req.userId }),
+      Document.deleteMany({ userId: req.userId }),
+      Task.deleteMany({ userId: req.userId }),
+      User.deleteOne({ _id: user._id }),
+    ]);
+    res.clearCookie("token", clearCookieOptions).json({ message: "Account deleted." });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ error: "Could not delete the account. Please try again." });
+  }
+});
+
+// GET /api/export — everything the user owns, as one JSON file (data portability).
+app.get("/api/export", requireAuth, async (req, res) => {
+  try {
+    const [user, documents, tasks] = await Promise.all([
+      User.findById(req.userId).select("-password").lean(),
+      Document.find({ userId: req.userId }).lean(),
+      Task.find({ userId: req.userId }).lean(),
+    ]);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    res.setHeader("Content-Disposition", 'attachment; filename="cognispace-export.json"');
+    res.json({ exportedAt: new Date().toISOString(), user: { name: user.name, email: user.email }, documents, tasks });
+  } catch (err) {
+    res.status(500).json({ error: "Export failed." });
   }
 });
 
@@ -595,5 +644,12 @@ connectDatabase().then(() => {
     console.log(`📡 AI Stream & SSE Controllers: Ready ✅\n`);
   });
 });
+
+function shutdown(signal) {
+  console.log(`${signal} received — closing database connection.`);
+  mongoose.connection.close().finally(() => process.exit(0));
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 export default app;

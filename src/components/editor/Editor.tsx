@@ -13,6 +13,7 @@ interface EditorProps {
   initialContent: string;
   onChange: (html: string) => void;
   onAskAI: (prompt: string) => void;
+  onSlashUsed?: () => void;
 }
 
 interface SlashItem {
@@ -38,7 +39,7 @@ const ITEMS: SlashItem[] = [
   { key: 'hr', label: 'Divider', hint: 'Separate sections', keywords: 'divider hr line', icon: <Minus size={15} />, run: (e) => e.chain().focus().setHorizontalRule().run() },
 ];
 
-export function Editor({ initialContent, onChange, onAskAI }: EditorProps) {
+export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: EditorProps) {
   const [slash, setSlash] = useState<{ from: number; query: string; top: number; left: number } | null>(null);
   const [index, setIndex] = useState(0);
   const [sel, setSel] = useState<{ top: number; left: number; text: string } | null>(null);
@@ -124,6 +125,7 @@ export function Editor({ initialContent, onChange, onAskAI }: EditorProps) {
     if (!ed || !open) return;
     ed.chain().focus().deleteRange({ from: open.from, to: ed.state.selection.head }).run();
     setSlash(null);
+    onSlashUsed?.();
     item.run(ed, (p) => askRef.current(p));
   }
 

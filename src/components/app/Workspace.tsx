@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, Check, Download, FilePlus2, History, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Sparkles, Star, Sun, Trash2, WifiOff,
+  AlertTriangle, Check, Download, FilePlus2, History, Home, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Settings, Sparkles, Star, Sun, Trash2, WifiOff,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { PageView } from './PageView';
 import { TasksView } from './TasksView';
+import { HomeView } from './HomeView';
+import { SettingsModal } from './SettingsModal';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { CopilotPanel } from './CopilotPanel';
 import { VersionHistory } from './VersionHistory';
@@ -14,6 +16,7 @@ import { ServerWakeBanner } from '../ui/ServerWakeBanner';
 import { useTheme } from '../../hooks/useTheme';
 import { useWorkspace, TEMPLATES } from '../../hooks/useWorkspace';
 import { useCopilot } from '../../hooks/useCopilot';
+import { useOnboarding } from '../../hooks/useOnboarding';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { cn } from '../../lib/cn';
 import { plainText, type AuthUser } from '../../lib/types';
@@ -54,7 +57,7 @@ const SYNC_UI: Record<SyncState, { label: string; tone: string; icon: 'ok' | 'sp
 
 function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
   const { toast } = useToast();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { theme, toggle: toggleTheme, setTheme } = useTheme();
   const isMobile = useIsMobile();
 
   const ws = useWorkspace({
@@ -62,8 +65,10 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
     onError: (m) => toast(m, { tone: 'error' }),
   });
   const ai = useCopilot();
+  const onboarding = useOnboarding();
 
-  const [view, setView] = useState<'page' | 'tasks'>('page');
+  const [view, setView] = useState<'home' | 'page' | 'tasks'>('home');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 820px)').matches);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
@@ -79,8 +84,8 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
 
   const newDoc = useCallback(async (template = TEMPLATES[0], parentId: string | null = null) => {
     const created = await ws.createDoc(template, parentId);
-    if (created) { setView('page'); if (isMobile) setSidebarOpen(false); }
-  }, [ws, isMobile]);
+    if (created) { setView('page'); onboarding.mark('page'); if (isMobile) setSidebarOpen(false); }
+  }, [ws, isMobile, onboarding]);
 
   const removeDoc = useCallback((id: string) => {
     const title = docs.find((d) => d.id === id)?.title || 'Untitled';
@@ -109,12 +114,12 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
   const openCopilot = useCallback((prompt = '') => {
     if (prompt) setSeedPrompt(prompt);
     setCopilotOpen(true);
-    setView('page');
   }, []);
 
   const runAi = useCallback((prompt: string) => {
+    onboarding.mark('copilot');
     void ai.run(prompt, active ? plainText(active.content) : '', active?.title ?? '');
-  }, [ai, active]);
+  }, [ai, active, onboarding]);
 
   const insertAi = useCallback(() => {
     if (!active || !ai.output) return;
@@ -138,18 +143,20 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
       const k = e.key.toLowerCase();
-      if (k === 'k') { e.preventDefault(); setPaletteOpen((o) => !o); }
+      if (k === 'k') { e.preventDefault(); setPaletteOpen((o) => !o); onboarding.mark('palette'); }
       else if (k === 'b') { e.preventDefault(); setSidebarOpen((o) => !o); }
       else if (k === 'j') { e.preventDefault(); setCopilotOpen((o) => !o); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [onboarding]);
 
   const actions = useMemo<PaletteAction[]>(() => [
     { id: 'new', label: 'New page', hint: 'Create a blank page', icon: <FilePlus2 size={14} />, keywords: 'create add', run: () => void newDoc() },
     ...TEMPLATES.slice(1).map<PaletteAction>((t) => ({ id: `tpl-${t.label}`, label: `New ${t.label.toLowerCase()}`, hint: 'From template', icon: <span>{t.icon}</span>, keywords: 'template create', run: () => void newDoc(t) })),
     { id: 'ai', label: 'Ask Copilot', hint: 'Write or edit with AI', icon: <Sparkles size={14} />, shortcut: '⌘J', keywords: 'ai gemini write', run: () => openCopilot() },
+    { id: 'home', label: 'Go to Home', icon: <Home size={14} />, run: () => setView('home') },
+    { id: 'settings', label: 'Open settings', hint: 'Account, theme, export, delete', icon: <Settings size={14} />, run: () => setSettingsOpen(true) },
     { id: 'board', label: 'Open sprint board', icon: <KanbanSquare size={14} />, keywords: 'tasks kanban', run: () => setView('tasks') },
     ...(active ? [
       { id: 'history', label: 'Version history', hint: 'Browse and restore earlier versions', icon: <History size={14} />, run: () => setHistoryOpen(true) },
@@ -180,10 +187,12 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
             onToggleTheme={toggleTheme}
             onSelectDoc={openDoc}
             onOpenTasks={() => { setView('tasks'); if (isMobile) setSidebarOpen(false); }}
+            onOpenHome={() => { setView('home'); if (isMobile) setSidebarOpen(false); }}
+            onOpenSettings={() => setSettingsOpen(true)}
             onNewDoc={(t, parent) => void newDoc(t, parent ?? null)}
             onDeleteDoc={removeDoc}
             onToggleStar={toggleStar}
-            onOpenPalette={() => setPaletteOpen(true)}
+            onOpenPalette={() => { setPaletteOpen(true); onboarding.mark('palette'); }}
             onLogout={onLogout}
             onHome={onBackToLanding}
           />
@@ -196,7 +205,9 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
           <button onClick={() => setSidebarOpen((o) => !o)} aria-label="Toggle sidebar" className="btn-ghost h-8 w-8 !px-0">{isMobile ? <Menu size={16} /> : <PanelLeft size={16} />}</button>
 
           <nav className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted" aria-label="Breadcrumb">
-            {view === 'tasks' ? (
+            {view === 'home' ? (
+              <span className="flex items-center gap-1.5 font-medium text-fg"><Home size={14} /> Home</span>
+            ) : view === 'tasks' ? (
               <span className="flex items-center gap-1.5 font-medium text-fg"><KanbanSquare size={14} /> Sprint board</span>
             ) : active ? (
               <span className="flex min-w-0 items-center gap-1.5">
@@ -260,12 +271,25 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
           <main className="min-w-0 flex-1" id="main">
             {ws.loadError ? (
               <EmptyState icon={<WifiOff size={22} />} title="Couldn’t load your workspace" body={ws.loadError} action={<button className="btn-primary" onClick={() => void ws.reload()}><RefreshCw size={14} /> Try again</button>} />
+            ) : view === 'home' ? (
+              <HomeView
+                user={user}
+                docs={docs}
+                tasks={ws.tasks}
+                loading={ws.loading}
+                onboarding={onboarding}
+                onOpenDoc={openDoc}
+                onNewDoc={(t) => void newDoc(t)}
+                onOpenTasks={() => setView('tasks')}
+                onOpenCopilot={() => openCopilot()}
+                onOpenPalette={() => { setPaletteOpen(true); onboarding.mark('palette'); }}
+              />
             ) : view === 'tasks' ? (
               <TasksView
                 tasks={ws.tasks}
                 loading={ws.loading}
                 userName={user?.name || 'You'}
-                onCreate={(p) => void ws.createTask(p, user?.name?.split(' ')[0] || 'You')}
+                onCreate={(p) => { onboarding.mark('task'); void ws.createTask(p, user?.name?.split(' ')[0] || 'You'); }}
                 onUpdate={(id, p) => void ws.updateTask(id, p)}
                 onDelete={(id) => void ws.deleteTask(id)}
               />
@@ -280,6 +304,7 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
                 editorKey={editorKey}
                 onPatch={(patch) => ws.patchDoc(active.id, patch)}
                 onAskAI={(p) => openCopilot(p)}
+                onSlashUsed={() => onboarding.mark('slash')}
               />
             ) : (
               <EmptyState
@@ -309,6 +334,18 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} docs={docs} actions={actions} onOpenDoc={openDoc} />
+
+      {settingsOpen && (
+        <SettingsModal
+          user={user}
+          theme={theme}
+          onTheme={setTheme}
+          getHeaders={ws.headers}
+          onClose={() => setSettingsOpen(false)}
+          onAccountDeleted={() => { setSettingsOpen(false); onLogout(); }}
+          onToast={(m, tone) => toast(m, { tone })}
+        />
+      )}
 
       {historyOpen && active && (
         <VersionHistory

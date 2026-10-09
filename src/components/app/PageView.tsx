@@ -20,9 +20,10 @@ interface Props {
   editorKey: string;
   onPatch: (patch: Partial<Doc>) => void;
   onAskAI: (prompt: string) => void;
+  onSlashUsed?: () => void;
 }
 
-export function PageView({ doc, editorKey, onPatch, onAskAI }: Props) {
+export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed }: Props) {
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const [tag, setTag] = useState('');
   const words = useMemo(() => { const t = plainText(doc.content); return t ? t.split(' ').length : 0; }, [doc.content]);
@@ -108,7 +109,7 @@ export function PageView({ doc, editorKey, onPatch, onAskAI }: Props) {
           <span className="ml-auto flex items-center gap-1.5 text-[12px] text-faint">{words} words · edited {timeAgo(doc.updatedAt) || 'just now'}</span>
         </div>
 
-        <Editor key={editorKey} initialContent={doc.content} onChange={(content) => onPatch({ content })} onAskAI={onAskAI} />
+        <Editor key={editorKey} initialContent={doc.content} onChange={(content) => onPatch({ content })} onAskAI={onAskAI} onSlashUsed={onSlashUsed} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  ChevronRight, KanbanSquare, LogOut, Moon, Plus, Search, Star, Sun, Trash2, FilePlus2, Sparkles,
+  ChevronRight, Home, KanbanSquare, LogOut, Moon, Plus, Search, Settings, Star, Sun, Trash2, FilePlus2, Sparkles,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Popover, MenuItem } from '../ui/Popover';
@@ -13,12 +13,14 @@ interface SidebarProps {
   user: AuthUser | null;
   docs: Doc[];
   activeId: string | null;
-  view: 'page' | 'tasks';
+  view: 'home' | 'page' | 'tasks';
   loading: boolean;
   theme: Theme;
   onToggleTheme: () => void;
   onSelectDoc: (id: string) => void;
   onOpenTasks: () => void;
+  onOpenHome: () => void;
+  onOpenSettings: () => void;
   onNewDoc: (template?: DocTemplate, parentId?: string | null) => void;
   onDeleteDoc: (id: string) => void;
   onToggleStar: (id: string) => void;
@@ -103,6 +105,12 @@ export function Sidebar(p: SidebarProps) {
 
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
         <button
+          onClick={p.onOpenHome}
+          className={cn('flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-[13.5px] transition-colors', p.view === 'home' ? 'bg-fg/[0.08] text-fg' : 'text-muted hover:bg-fg/[0.05] hover:text-fg')}
+        >
+          <Home size={15} /> Home
+        </button>
+        <button
           onClick={p.onOpenTasks}
           className={cn('mb-1 flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-[13.5px] transition-colors', p.view === 'tasks' ? 'bg-fg/[0.08] text-fg' : 'text-muted hover:bg-fg/[0.05] hover:text-fg')}
         >
@@ -149,6 +157,7 @@ export function Sidebar(p: SidebarProps) {
               <MenuItem onClick={() => { p.onToggleTheme(); close(); }}>
                 {p.theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} {p.theme === 'dark' ? 'Light theme' : 'Dark theme'}
               </MenuItem>
+              <MenuItem onClick={() => { p.onOpenSettings(); close(); }}><Settings size={14} /> Settings</MenuItem>
               <MenuItem danger onClick={() => { close(); p.onLogout(); }}><LogOut size={14} /> Log out</MenuItem>
             </>
           )}
