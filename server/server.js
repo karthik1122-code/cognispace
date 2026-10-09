@@ -108,17 +108,17 @@ async function seedUserStarterData(userId, userName) {
     if (existingDocsCount === 0) {
       const starterDocs = [
         {
-          title: `👋 Welcome to CogniSpace`,
+          title: "Welcome to CogniSpace",
           icon: "🚀",
           cover: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)",
           status: "In Progress",
           priority: "High",
           tags: ["Welcome", "Guide"],
           isStarred: true,
-          content: `<h2>Welcome to your fresh workspace, ${firstName}!</h2><p>CogniSpace combines the versatility of a Notion-style block editor with Google Gemini AI and sprint tracking.</p><h3>⚡ Quick Start Checklist</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false">Type <b>/</b> anywhere on an empty line to insert headings, toggles, or code</li><li data-type="taskItem" data-checked="false">Click <b>▶</b> on toggle lists to organize thoughts cleanly</li><li data-type="taskItem" data-checked="false">Highlight any text to rewrite or summarize with Gemini AI</li><li data-type="taskItem" data-checked="false">Click <b>+</b> in the sidebar to create new pages or sub-pages</li><li data-type="taskItem" data-checked="false">Switch to <b>Database</b> view in the sidebar to manage sprint tasks</li></ul><details open=""><summary><b>💡 Pro Tips &amp; Shortcuts</b></summary><p>• <b>⌘B</b> — Toggle sidebar<br/>• <b>⌘K</b> — Instant quick search<br/>• <b>⌘J</b> — Focus AI Copilot bar<br/>• <b>⌘N</b> — Create new document</p></details>`,
+          content: `<h2>Welcome to your fresh workspace, ${firstName}!</h2><p>CogniSpace combines the versatility of a Notion-style block editor with Google Gemini AI and sprint tracking.</p><h3>Quick start</h3><ul data-type="taskList"><li data-type="taskItem" data-checked="false">Type <b>/</b> anywhere on an empty line to insert headings, toggles, or code</li><li data-type="taskItem" data-checked="false">Click <b>▶</b> on toggle lists to organize thoughts cleanly</li><li data-type="taskItem" data-checked="false">Highlight any text to rewrite or summarize with Gemini AI</li><li data-type="taskItem" data-checked="false">Click <b>+</b> in the sidebar to create new pages or sub-pages</li><li data-type="taskItem" data-checked="false">Open the <b>Sprint board</b> in the sidebar to plan your tasks</li></ul><details open=""><summary><b>Shortcuts</b></summary><p>• <b>⌘B</b> — Toggle sidebar<br/>• <b>⌘K</b> — Instant quick search<br/>• <b>⌘J</b> — Focus AI Copilot bar<br/>• <b>⌘N</b> — Create new document</p></details>`,
         },
         {
-          title: "📝 Quick Notes & Scratchpad",
+          title: "Quick Notes",
           icon: "💡",
           cover: "linear-gradient(135deg, #092e35 0%, #0c4a6e 40%, #0284c7 100%)",
           status: "In Progress",
@@ -137,10 +137,10 @@ async function seedUserStarterData(userId, userName) {
     const existingTasksCount = await Task.countDocuments({ userId });
     if (existingTasksCount === 0) {
       const starterTasks = [
-        { name: "🚀 Explore CogniSpace editor", status: "In Progress", priority: "High", assignee: firstName, dueDate: "Today", progress: 60 },
-        { name: "⚡ Try inserting a Toggle block with /", status: "In Progress", priority: "Medium", assignee: firstName, dueDate: "Today", progress: 20 },
-        { name: "🤖 Highlight text to test Gemini AI Copilot", status: "Backlog", priority: "Medium", assignee: firstName, dueDate: "Tomorrow", progress: 0 },
-        { name: "📊 Track sprints in Database view", status: "Backlog", priority: "Low", assignee: firstName, dueDate: "This week", progress: 0 },
+        { name: "Explore the CogniSpace editor", status: "In Progress", priority: "High", assignee: firstName, dueDate: "Today", progress: 60 },
+        { name: "Insert a toggle block with /", status: "In Progress", priority: "Medium", assignee: firstName, dueDate: "Today", progress: 20 },
+        { name: "Highlight text and try the AI Copilot", status: "Backlog", priority: "Medium", assignee: firstName, dueDate: "Tomorrow", progress: 0 },
+        { name: "Drag a task across the sprint board", status: "Backlog", priority: "Low", assignee: firstName, dueDate: "This week", progress: 0 },
       ];
 
       for (const task of starterTasks) {
