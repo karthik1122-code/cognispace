@@ -150,3 +150,9 @@
 :root[data-theme='light'] .card-soft:hover { box-shadow: 0 1px 0 rgb(255 255 255), 0 22px 44px -18px rgb(60 50 140 / .38); }
 :root[data-theme='light'] .aurora { opacity: .55; }
 :root[data-theme='light'] body { background-image: radial-gradient(rgb(var(--fg) / .05) 1px, transparent 1px); background-size: 22px 22px; }
+
+@keyframes hop { 0%,18% { transform: translateX(0); } 45%,60% { transform: translateX(calc(100% + 8px)); } 85%,100% { transform: translateX(calc(200% + 16px)); opacity: 0; } }
+.hop { animation: hop 4.2s ease-in-out infinite; }
+@keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.drain { animation: drain 3s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .hop, .drain { animation: none; } }
