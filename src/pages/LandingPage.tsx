@@ -1,4 +1,5 @@
-import { ArrowRight, ArrowUpRight, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, History, KanbanSquare, Moon, Search, ShieldCheck, Sparkles, Sun, Undo2, Zap } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { ProductShot } from '../components/landing/ProductShot';
 import { BoardIllustration, CopilotIllustration, HistoryIllustration, SlashIllustration } from '../components/landing/Illustrations';
@@ -46,24 +47,53 @@ const SHORTCUTS: [string[], string][] = [
   [['⌘', 'B'], 'Toggle sidebar'],
 ];
 
+const STACK = ['React 19', 'TypeScript', 'TipTap', 'Gemini', 'Express', 'MongoDB'];
+
+const STEPS = [
+  { n: '01', title: 'Write', body: 'Open a page and type “/” to add headings, to-dos, toggles and code.' },
+  { n: '02', title: 'Ask Copilot', body: 'Highlight text or describe what you need. Review the result before it lands.' },
+  { n: '03', title: 'Ship', body: 'Move tasks across the sprint board and keep every change in version history.' },
+];
+
+const FAQ = [
+  { q: 'Is CogniSpace free?', a: 'Yes, it is free while in beta. There is no card to enter and nothing to install.' },
+  { q: 'Which AI does Copilot use?', a: 'Google Gemini. Requests go through our server, are rate limited, and the result is shown for you to review before anything is inserted.' },
+  { q: 'Can I get my data out?', a: 'Yes. Export all of your pages and tasks as JSON from Settings, or delete your account and data in one step.' },
+  { q: 'Is it real-time multiplayer?', a: 'Not yet. Today it is a fast single-player workspace with safe autosave and conflict handling. Collaboration is on the roadmap.' },
+];
+
+const BENTO = [
+  { icon: Zap, title: 'Block editor', body: 'Type “/” for headings, lists, toggles and code. Select text for a formatting toolbar.', span: 'md:col-span-2' },
+  { icon: Sparkles, title: 'Copilot', body: 'Improve, shorten or write from the page you are on.', span: '' },
+  { icon: KanbanSquare, title: 'Sprint board', body: 'Drag tasks between Backlog, In Progress, In Review and Done.', span: '' },
+  { icon: History, title: 'Version history', body: 'Snapshots as you write. Restore any version in one click.', span: '' },
+  { icon: Undo2, title: 'Undo everything', body: 'Take back deletes and AI inserts within seconds.', span: '' },
+  { icon: Search, title: 'Command palette', body: 'Search every page and run commands with ⌘K.', span: 'md:col-span-2' },
+  { icon: ShieldCheck, title: 'Private by default', body: 'Per-account data, hashed passwords, rate limits and security headers.', span: '' },
+];
+
+const REPO = 'https://github.com/karthik1122-code/cognispace';
+
 export function LandingPage({ onGetStarted, onLogin }: Props) {
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState<number | null>(0);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-app text-fg">
-      {/* Announcement */}
       <a href="#shipped" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
         <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide text-accent">New</span>
         Version history, undo and honest autosave <ArrowRight size={12} />
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-line bg-app/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line bg-app/70 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-5">
           <Logo />
-          <nav className="hidden items-center gap-6 text-[13.5px] text-muted md:flex" aria-label="Primary">
-            <a href="#product" className="transition-colors hover:text-fg">Product</a>
+          <nav className="hidden items-center gap-7 text-[13.5px] text-muted md:flex" aria-label="Primary">
+            <a href="#features" className="transition-colors hover:text-fg">Features</a>
+            <a href="#how" className="transition-colors hover:text-fg">How it works</a>
             <a href="#shipped" className="transition-colors hover:text-fg">Shipped</a>
-            <a href="#keyboard" className="transition-colors hover:text-fg">Shortcuts</a>
+            <a href="#faq" className="transition-colors hover:text-fg">FAQ</a>
+            <a href={REPO} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-fg">GitHub <ArrowUpRight size={12} /></a>
           </nav>
           <div className="flex items-center gap-2">
             <button onClick={onLogin} className="btn-ghost">Log in</button>
@@ -74,27 +104,65 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
 
       <main>
         {/* Hero */}
-        <section className="relative border-b border-line">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--fg)/0.035)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(60%_70%_at_50%_0%,#000,transparent)]" />
-          <div className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 bg-[radial-gradient(closest-side,rgb(var(--accent)/0.22),transparent)]" />
-          <div className="relative mx-auto max-w-[1200px] px-5 pb-24 pt-24 text-center sm:pt-32">
-            <h1 className="mx-auto max-w-[900px] animate-fade-up text-balance text-[44px] font-semibold leading-[1.02] tracking-[-0.05em] sm:text-[76px]">
-              The workspace for writing and shipping.
-              <span className="text-muted"> Notes, docs and sprints, with AI that edits alongside you.</span>
+        <section className="relative overflow-hidden border-b border-line">
+          <div className="aurora pointer-events-none absolute inset-x-0 top-0 h-[640px] opacity-80" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--fg)/0.04)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--fg)/0.04)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(55%_65%_at_50%_0%,#000,transparent)]" />
+          <div className="relative mx-auto max-w-[1200px] px-5 pb-16 pt-20 text-center sm:pt-28">
+            <a href={REPO} target="_blank" rel="noreferrer" className="mx-auto mb-8 inline-flex animate-fade-up items-center gap-2 rounded-full border border-line bg-fg/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-muted backdrop-blur transition-colors hover:text-fg">
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-fg">Open source</span>
+              Notes, docs and sprints in one workspace <ArrowRight size={12} />
+            </a>
+            <h1 className="mx-auto max-w-[920px] animate-fade-up text-balance text-[46px] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[84px]">
+              <span className="text-gradient">Where ideas become</span>{' '}
+              <span className="text-gradient-accent">shipped work.</span>
             </h1>
-            <div className="mt-10 flex animate-fade-up flex-wrap items-center justify-center gap-3" style={{ animationDelay: '120ms' }}>
-              <button onClick={onGetStarted} className="btn-primary !h-11 !rounded-full !px-6 !text-[14.5px]">Start building <ArrowRight size={15} /></button>
-              <button onClick={onLogin} className="btn-outline !h-11 !rounded-full !px-6 !text-[14.5px]">Log in</button>
+            <p className="mx-auto mt-6 max-w-[620px] animate-fade-up text-balance text-[17px] leading-relaxed text-muted sm:text-[19px]" style={{ animationDelay: '80ms' }}>
+              A fast, keyboard-first workspace with a block editor, an AI Copilot that edits the page you are on, and a sprint board, all in one place.
+            </p>
+            <div className="mt-9 flex animate-fade-up flex-wrap items-center justify-center gap-3" style={{ animationDelay: '140ms' }}>
+              <button onClick={onGetStarted} className="btn-primary !h-12 !rounded-full !px-7 !text-[15px]">Start building free <ArrowRight size={16} /></button>
+              <a href={REPO} target="_blank" rel="noreferrer" className="btn-outline !h-12 !rounded-full !px-6 !text-[15px]"><GitBranch size={15} /> Star on GitHub</a>
             </div>
-            <p className="mt-5 font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint">Free to try · Private to your account</p>
+            <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-faint">
+              {['Free during beta', 'No card needed', 'Export or delete anytime'].map((t) => (
+                <li key={t} className="inline-flex items-center gap-1.5"><Check size={13} className="text-ok" />{t}</li>
+              ))}
+            </ul>
+
+            <div id="product" className="relative mx-auto mt-16 max-w-[1080px] scroll-mt-24">
+              <div className="absolute -inset-x-10 -top-10 bottom-0 -z-10 bg-[radial-gradient(50%_60%_at_50%_30%,rgb(var(--accent)/0.28),transparent)]" />
+              <div className="card-glow float-y rounded-2xl p-px">
+                <div className="overflow-hidden rounded-2xl border border-line bg-app shadow-[0_40px_120px_-30px_rgb(var(--accent)/0.55)]"><ProductShot /></div>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Product */}
-        <section id="product" className="scroll-mt-20 border-b border-line">
-          <div className="mx-auto max-w-[1200px] px-5 py-20">
-            <div className="animate-fade-up"><ProductShot /></div>
-            <p className="mt-5 text-center font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint">Fig 0 — Page, Copilot and sidebar</p>
+        {/* Stack strip */}
+        <section className="border-b border-line">
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-4 px-5 py-8 sm:flex-row sm:justify-between">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-faint">Built on</p>
+            <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[15px] font-medium text-muted">
+              {STACK.map((s) => <li key={s}>{s}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        {/* Bento */}
+        <section id="features" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-[1200px] px-5 py-24">
+            <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Features</p>
+            <h2 className="max-w-[640px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Everything you need to think, plan and ship.</h2>
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
+              {BENTO.map(({ icon: Icon, title, body, span }) => (
+                <article key={title} className={cn('group relative overflow-hidden rounded-2xl border border-line bg-surface p-7 transition-all hover:-translate-y-0.5 hover:border-accent/40', span)}>
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-accent/10 opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
+                  <span className="mb-10 grid h-10 w-10 place-items-center rounded-xl border border-line bg-fg/[0.04] text-accent"><Icon size={18} /></span>
+                  <h3 className="text-[18px] font-semibold tracking-tight">{title}</h3>
+                  <p className="mt-2 max-w-[420px] text-[14.5px] leading-relaxed text-muted">{body}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -103,25 +171,40 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           <section key={r.fig} className="border-b border-line">
             <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:gap-20">
               <div className={cn(i % 2 === 1 && 'lg:order-2')}>
-                <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">{r.fig} · {r.label}</p>
-                <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">
-                  {r.title}
-                </h2>
+                <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">{r.label}</p>
+                <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">{r.title}</h2>
                 <p className="mt-4 max-w-[460px] text-[16px] leading-relaxed text-muted">{r.body}</p>
                 <button onClick={onGetStarted} className="group mt-6 inline-flex items-center gap-1 text-[14px] font-medium text-fg">
                   Try it <ArrowUpRight size={15} className="text-faint transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg" />
                 </button>
               </div>
-              <div className={cn(i % 2 === 1 && 'lg:order-1')}>{r.art}</div>
+              <div className={cn('rounded-2xl border border-line bg-surface/50 p-3', i % 2 === 1 && 'lg:order-1')}>{r.art}</div>
             </div>
           </section>
         ))}
 
+        {/* How it works */}
+        <section id="how" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-[1200px] px-5 py-24">
+            <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">How it works</p>
+            <h2 className="max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">From blank page to done in three steps.</h2>
+            <ol className="mt-12 grid gap-4 md:grid-cols-3">
+              {STEPS.map((s) => (
+                <li key={s.n} className="rounded-2xl border border-line bg-surface p-7">
+                  <span className="text-gradient-accent font-mono text-[34px] font-semibold tracking-tight">{s.n}</span>
+                  <h3 className="mt-6 text-[18px] font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
         {/* Shipped */}
         <section id="shipped" className="scroll-mt-20 border-b border-line">
-          <div className="mx-auto max-w-[1200px] px-5 py-20">
+          <div className="mx-auto max-w-[1200px] px-5 py-24">
             <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Recently shipped</p>
-            <h2 className="mb-10 max-w-[560px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">Small details that make it feel solid.</h2>
+            <h2 className="mb-10 max-w-[560px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[48px]">Small details that make it feel solid.</h2>
             <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
               {SHIPPED.map((s) => (
                 <article key={s.title} className="bg-app p-7 transition-colors hover:bg-surface">
@@ -136,12 +219,12 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
 
         {/* Shortcuts */}
         <section id="keyboard" className="scroll-mt-20 border-b border-line">
-          <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-20 lg:grid-cols-2">
+          <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-24 lg:grid-cols-2">
             <div>
               <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">Keyboard first</p>
-              <h2 className="max-w-[460px] text-balance text-[32px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[40px]">Learn four shortcuts. Never reach for the mouse.</h2>
+              <h2 className="max-w-[460px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">Learn four shortcuts. Never reach for the mouse.</h2>
             </div>
-            <ul className="divide-y divide-line rounded-2xl border border-line">
+            <ul className="divide-y divide-line rounded-2xl border border-line bg-surface">
               {SHORTCUTS.map(([keys, d]) => (
                 <li key={d} className="flex items-center justify-between px-5 py-4">
                   <span className="text-[15px] text-muted">{d}</span>
@@ -152,27 +235,75 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
           </div>
         </section>
 
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-24 lg:grid-cols-[1fr_1.4fr]">
+            <div>
+              <p className="mb-4 font-mono text-[11.5px] uppercase tracking-[0.12em] text-accent">FAQ</p>
+              <h2 className="max-w-[360px] text-balance text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[44px]">Straight answers.</h2>
+            </div>
+            <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+              {FAQ.map((f, i) => (
+                <div key={f.q}>
+                  <button onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i} className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left text-[16px] font-medium">
+                    {f.q}
+                    <ChevronDown size={18} className={cn('shrink-0 text-faint transition-transform', open === i && 'rotate-180 text-fg')} />
+                  </button>
+                  {open === i && <p className="animate-fade-up px-6 pb-5 text-[14.5px] leading-relaxed text-muted">{f.a}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[360px] bg-[radial-gradient(50%_100%_at_50%_100%,rgb(var(--accent)/0.2),transparent)]" />
-          <div className="relative mx-auto max-w-[1200px] px-5 py-28 text-center">
-            <h2 className="mx-auto max-w-[680px] text-balance text-[38px] font-semibold leading-[1.05] tracking-[-0.045em] sm:text-[56px]">Start with a blank page.</h2>
+          <div className="aurora pointer-events-none absolute inset-x-0 bottom-0 h-[420px] opacity-70" />
+          <div className="relative mx-auto max-w-[1200px] px-5 py-32 text-center">
+            <h2 className="mx-auto max-w-[760px] text-balance text-[40px] font-semibold leading-[1.02] tracking-[-0.05em] sm:text-[64px]"><span className="text-gradient">Start with a</span> <span className="text-gradient-accent">blank page.</span></h2>
+            <p className="mx-auto mt-5 max-w-[480px] text-[16px] text-muted">Create your workspace in under a minute. Free while in beta.</p>
             <div className="mt-8 flex justify-center gap-3">
-              <button onClick={onGetStarted} className="btn-primary !h-11 !rounded-full !px-6 !text-[14.5px]">Create your workspace <ArrowRight size={15} /></button>
+              <button onClick={onGetStarted} className="btn-primary !h-12 !rounded-full !px-7 !text-[15px]">Create your workspace <ArrowRight size={16} /></button>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-8 text-[13px] text-faint">
-          <div className="flex items-center gap-4"><Logo size={20} /><span>Built by Karthik Uppari</span></div>
-          <div className="flex items-center gap-1 rounded-full border border-line p-0.5" role="radiogroup" aria-label="Theme">
-            {([['light', Sun], ['dark', Moon]] as const).map(([k, Icon]) => (
-              <button key={k} role="radio" aria-checked={theme === k} aria-label={`${k} theme`} onClick={() => setTheme(k)} className={cn('grid h-7 w-7 place-items-center rounded-full', theme === k ? 'bg-fg/10 text-fg' : 'hover:text-fg')}>
-                <Icon size={13} />
-              </button>
-            ))}
+      <footer className="border-t border-line bg-sidebar">
+        <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <Logo />
+            <p className="mt-4 max-w-[280px] text-[13.5px] leading-relaxed text-muted">The AI workspace for notes, docs and sprints. Built in public by Karthik Uppari.</p>
+            <div className="mt-5 flex items-center gap-2">
+              <a href={REPO} target="_blank" rel="noreferrer" aria-label="GitHub" className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted transition-colors hover:text-fg"><GitBranch size={16} /></a>
+              <a href="https://linkedin.com/in/karthik-uppari-4005a7373" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted transition-colors hover:text-fg"><span className="text-[13px] font-bold">in</span></a>
+            </div>
+          </div>
+          {([
+            ['Product', [['Features', '#features'], ['How it works', '#how'], ['Shipped', '#shipped'], ['Shortcuts', '#keyboard']]],
+            ['Resources', [['Source code', REPO], ['Report an issue', REPO + '/issues'], ['Changelog', REPO + '/pulls'], ['FAQ', '#faq']]],
+            ['Project', [['MIT license', REPO + '/blob/main/LICENSE'], ['README', REPO + '#readme'], ['Author', 'https://github.com/karthik1122-code']]],
+          ] as [string, [string, string][]][]).map(([h, links]) => (
+            <div key={h}>
+              <h4 className="mb-4 text-[12.5px] font-semibold uppercase tracking-[0.1em] text-fg">{h}</h4>
+              <ul className="space-y-2.5 text-[13.5px] text-muted">
+                {links.map(([l, href]) => (
+                  <li key={l}><a href={href} {...(href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})} className="transition-colors hover:text-fg">{l}</a></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-line">
+          <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-5 py-6 text-[12.5px] text-faint">
+            <span>© {new Date().getFullYear()} CogniSpace. Released under the MIT license.</span>
+            <div className="flex items-center gap-1 rounded-full border border-line p-0.5" role="radiogroup" aria-label="Theme">
+              {([['light', Sun], ['dark', Moon]] as const).map(([k, Icon]) => (
+                <button key={k} role="radio" aria-checked={theme === k} aria-label={`${k} theme`} onClick={() => setTheme(k)} className={cn('grid h-7 w-7 place-items-center rounded-full', theme === k ? 'bg-fg/10 text-fg' : 'hover:text-fg')}>
+                  <Icon size={13} />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
