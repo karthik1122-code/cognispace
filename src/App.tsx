@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LandingPage } from './pages/LandingPage';
-import { AuthPage } from './pages/AuthPage';
-import { Workspace } from './components/app/Workspace';
+// Each screen is its own chunk: visitors who only see the landing page never download the editor.
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
+const Workspace = lazy(() => import('./components/app/Workspace').then(m => ({ default: m.Workspace })));
 import { ServerWakeBanner } from './components/ui/ServerWakeBanner';
 import { Logo } from './components/landing/Logo';
 import { apiUrl } from './utils/api';
@@ -71,12 +72,20 @@ export function App() {
     );
   }
 
+  const loading = (
+    <div className="grid min-h-screen place-items-center bg-app" role="status" aria-label="Loading">
+      <div className="flex animate-pulse flex-col items-center gap-4"><Logo size={32} /></div>
+    </div>
+  );
+
   return (
+    <Suspense fallback={loading}>
     <AnimatePresence mode="wait" initial={false}>
       {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => setView('auth')} onLogin={() => setView('auth')} /></Fade>}
       {view === 'auth' && <Fade k="auth"><AuthPage onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
       {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
     </AnimatePresence>
+    </Suspense>
   );
 }
 
