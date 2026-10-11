@@ -4,7 +4,7 @@
 
 **A fast, keyboard-first workspace for notes, docs and sprints — with an AI Copilot that edits the page you are on.**
 
-[Live demo](https://cognispace-sigma.vercel.app) · [API health](https://cognispace.onrender.com/health)
+[Live demo](https://cognispace-sigma.vercel.app) · [API health](https://cognispace-h5c9.onrender.com/health)
 
 </div>
 

@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://cognispace.onrender.com/api/:path*"
+      "destination": "https://cognispace-h5c9.onrender.com/api/:path*"
     },
     {
       "source": "/((?!api/).*)",
