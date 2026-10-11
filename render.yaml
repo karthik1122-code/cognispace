@@ -31,7 +31,7 @@ services:
 
       # Optional: override the Gemini model and the per-user daily AI cap
       - key: GEMINI_MODEL
-        value: gemini-2.5-flash
+        value: gemini-3.8-flash
       - key: AI_DAILY_LIMIT
         value: "60"
 
