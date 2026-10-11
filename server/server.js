@@ -186,17 +186,15 @@ app.use(cookieParser());
 const rawOrigins = process.env.CORS_ORIGINS || process.env.CLIENT_URL || "http://localhost:5173";
 const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
 
+// A request from the app's own origin (the all-in-one deploy serves the page and the API together) is always allowed.
+// Other origins must be listed. Unlisted origins simply get no CORS headers, so the browser blocks them; the server does not error.
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (curl, mobile apps, server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
-        return callback(null, true);
-      }
-      callback(new Error(`CORS blocked: ${origin}`));
-    },
-    credentials: true,
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    let sameOrigin = false;
+    try { sameOrigin = !!origin && new URL(origin).host === req.headers.host; } catch { /* malformed Origin header */ }
+    const allowed = !origin || sameOrigin || allowedOrigins.includes(origin) || allowedOrigins.includes("*");
+    callback(null, { origin: allowed, credentials: true });
   })
 );
 
@@ -236,6 +234,12 @@ const aiBurstLimiter = rateLimit({
 // ══════════════════════════════════════════════════════════════
 
 // POST /api/auth/register
+// Any route with an :id gets a clean 404 for a malformed id instead of a 500 from the database driver.
+app.param("id", (_req, res, next, id) => {
+  if (!mongoose.isValidObjectId(id)) return res.status(404).json({ error: "Not found." });
+  next();
+});
+
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -622,6 +626,16 @@ app.post("/api/ai/transform", requireAuth, aiBurstLimiter, aiDailyLimiter, strea
 app.get("/health", (_req, res) => {
   const ready = mongoose.connection.readyState === 1;
   res.status(ready ? 200 : 503).json({ status: ready ? "ok" : "starting", app: "CogniSpace" });
+});
+
+// Body-parser failures (oversized or malformed JSON) answer in JSON, not an HTML error page.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status === 413) return res.status(413).json({ error: "That request is too large." });
+  if (status === 400) return res.status(400).json({ error: "The request body is not valid JSON." });
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Something went wrong." });
 });
 
 // ── Serve React Frontend if dist/ exists (Render all-in-one deploy) ───────
