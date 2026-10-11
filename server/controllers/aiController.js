@@ -6,7 +6,7 @@ export const streamAiTransform = async (req, res) => {
   const documentTitle = asText(body.documentTitle || body.contextTitle, 200).replace(/["\n\r]/g, " ");
   const mode = ["summarize", "improve", "transform"].includes(body.mode) ? body.mode : "transform";
   const IS_PROD = process.env.NODE_ENV === "production";
-  const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
   if (!prompt && !selectedText) {
     return res.status(400).json({ error: "Context or prompt is required." });
