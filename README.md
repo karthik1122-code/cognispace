@@ -70,6 +70,7 @@ npm run dev              # Vite on :5173 (proxies /api to :3001)
 | `CORS_ORIGINS` | yes | Comma-separated browser origins, e.g. your Vercel URL |
 | `GEMINI_API_KEY` | for AI | Copilot. Without it production returns a clear error |
 | `GEMINI_MODEL` | no | Defaults to `gemini-3.8-flash` |
+| `GEMINI_FALLBACK_MODEL` | no | Tried if the main model keeps answering 503 or 429 (each model gets 3 attempts) |
 | `AI_DAILY_LIMIT` | no | Per-user AI requests per day (default 60) |
 
 ## Deploy
