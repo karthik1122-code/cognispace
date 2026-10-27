@@ -61,6 +61,7 @@ npm ci
 cp .env.example .env     # optional in development
 npm start                # API on :3001 (embedded in-memory MongoDB when MONGODB_URI is empty)
 npm run dev              # Vite on :5173 (proxies /api to :3001)
+npm test                 # API tests against an embedded MongoDB
 ```
 
 | Variable | Required in prod | Purpose |
@@ -88,14 +89,23 @@ src/
   hooks/               useDocSync (autosave), useWorkspace (data), useCopilot, useTheme, useOnboarding
   utils/               sanitize, aiStream (SSE), api
 server/
-  server.js            Express app (auth, documents, versions, tasks, export, AI)
-  controllers/         aiController (Gemini streaming)
+  server.js            Boot: connect the database, listen, shut down cleanly
+  app.js               createApp(): middleware and routes, no I/O (what the tests use)
+  config.js            Environment, secrets, cookie and limit settings
+  db.js                MongoDB connection (embedded database in development only)
+  schemas.js           zod request schemas for every write
+  routes/              auth, documents (versions, conflicts), tasks
+  middleware/          auth, validation, CORS and security headers, rate limits, errors
+  services/            starter data, version snapshots
+  controllers/         aiController (Gemini streaming with retries and fallback)
   models/              User, Document, DocumentVersion, Task
+  app.test.js          API tests: auth, privacy, 409 conflicts, validation, tasks, account deletion
 ```
 
 ## Roadmap
 
-* [ ] Automated tests (API integration tests, `useDocSync` unit tests, Playwright smoke test)
+* [x] API integration tests in CI
+* [ ] `useDocSync` unit tests and a Playwright smoke test
 * [ ] Shared workspaces and page sharing
 * [ ] Real-time co-editing
 * [ ] Per-user AI usage dashboard

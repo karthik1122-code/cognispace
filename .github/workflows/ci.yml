@@ -17,8 +17,7 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
-        continue-on-error: true # tighten to a hard failure once the baseline is clean
       - name: Typecheck and build
         run: npm run build
-      - name: Backend syntax check
-        run: node --check server/server.js && node --check server/controllers/aiController.js
+      - name: API tests (embedded MongoDB)
+        run: npm test
