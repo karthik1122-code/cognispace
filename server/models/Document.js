@@ -22,6 +22,8 @@ const documentSchema = new mongoose.Schema(
     isArchived: { type: Boolean, default: false, index: true },
     userId: { type: String, required: true, index: true },
     parentId: { type: mongoose.Schema.Types.Mixed, default: null, index: true },
+    // Set when the owner shares a read-only link; null means the page is private.
+    shareId: { type: String, default: null },
   },
   {
     timestamps: true,
@@ -36,6 +38,7 @@ const documentSchema = new mongoose.Schema(
 );
 
 documentSchema.index({ userId: 1, isArchived: 1, updatedAt: -1 });
+documentSchema.index({ shareId: 1 }, { unique: true, partialFilterExpression: { shareId: { $type: "string" } } });
 
 export const Document = mongoose.model("Document", documentSchema);
 export default Document;

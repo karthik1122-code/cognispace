@@ -42,4 +42,12 @@ services:
       - key: CORS_ORIGINS
         sync: false   # e.g. https://cognispace-sigma.vercel.app
 
+      # Password-reset email. Without RESEND_API_KEY, "Forgot password?" cannot send mail.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false   # e.g. CogniSpace <no-reply@yourdomain.com>
+      - key: APP_URL
+        sync: false   # frontend URL used in reset links
+
     autoDeploy: true

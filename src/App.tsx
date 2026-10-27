@@ -4,6 +4,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
 const Workspace = lazy(() => import('./components/app/Workspace').then(m => ({ default: m.Workspace })));
+const SharedPage = lazy(() => import('./pages/SharedPage').then(m => ({ default: m.SharedPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+
+// Public share links look like /s/<id>; reset links like /?reset=<token>.
+const SHARE_ID = window.location.pathname.match(/^\/s\/([A-Za-z0-9_-]{20,40})\/?$/)?.[1] ?? null;
+const RESET_TOKEN = new URLSearchParams(window.location.search).get('reset');
 import { ServerWakeBanner } from './components/ui/ServerWakeBanner';
 import { Logo } from './components/landing/Logo';
 import { apiUrl } from './utils/api';
@@ -22,6 +28,12 @@ function Fade({ k, children }: { k: string; children: ReactNode }) {
 }
 
 export function App() {
+  if (SHARE_ID) return <Suspense fallback={null}><SharedPage shareId={SHARE_ID} /></Suspense>;
+  return <MainApp />;
+}
+
+function MainApp() {
+  const [resetToken, setResetToken] = useState<string | null>(RESET_TOKEN);
   const [view, setView] = useState<AppView>('landing');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
@@ -57,6 +69,15 @@ export function App() {
     setUser(null);
     setView('landing');
   }, []);
+
+  const leaveReset = () => { setResetToken(null); window.history.replaceState(null, '', '/'); };
+  if (resetToken) {
+    return (
+      <Suspense fallback={null}>
+        <ResetPasswordPage token={resetToken} onDone={(u) => { leaveReset(); setUser(u); setView('app'); setChecking(false); }} onCancel={() => { leaveReset(); setAuthMode('login'); setView('auth'); }} />
+      </Suspense>
+    );
+  }
 
   if (checking) {
     return (

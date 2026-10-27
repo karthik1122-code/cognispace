@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "crypto";
 import { Document } from "../models/Document.js";
 import { DocumentVersion } from "../models/DocumentVersion.js";
 import { MAX_VERSIONS_PER_DOC } from "../config.js";
@@ -104,6 +105,20 @@ router.post("/documents/:id/versions/:versionId/restore", async (req, res) => {
     { new: true }
   ).lean();
   res.json(out(restored));
+});
+
+// Read-only sharing. The link holds a random id, so only people who get the link can open the page.
+router.post("/documents/:id/share", async (req, res) => {
+  const doc = await Document.findOne({ _id: req.params.id, userId: req.userId });
+  if (!doc) return res.status(404).json({ error: "Document not found." });
+  if (!doc.shareId) { doc.shareId = crypto.randomBytes(18).toString("base64url"); await doc.save(); }
+  res.json({ shareId: doc.shareId });
+});
+
+router.delete("/documents/:id/share", async (req, res) => {
+  const doc = await Document.findOneAndUpdate({ _id: req.params.id, userId: req.userId }, { $set: { shareId: null } });
+  if (!doc) return res.status(404).json({ error: "Document not found." });
+  res.json({ shareId: null });
 });
 
 // Deleting a page also deletes its sub-pages (all levels) and their history, so no page is left

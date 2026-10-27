@@ -31,6 +31,8 @@ The core promise is trust: your writing is never lost or silently overwritten, a
 | **Reliability** | Autosave only reports *Saved* after the server confirms. Offline retries with backoff. Optimistic concurrency (version check) with a "load theirs / keep mine" flow |
 | **History** | Automatic snapshots (at most one per 2 min, 50 per page). One-click restore that keeps the overwritten text in history |
 | **Safety nets** | Undo for page delete and AI inserts. Export a page as HTML, or all data as JSON. Delete account (password-confirmed) |
+| **Sharing** | Publish any page as a read-only link (`/s/<id>`); the link shows only the page, never your other pages or your account. Stop sharing at any time and the old link stops working |
+| **Account security** | Password reset by email (30-minute single-use link). A reset signs out every other session. Repeated wrong passwords lock that email for 15 minutes, tracked in MongoDB so it survives restarts |
 | **Command palette** | `⌘K` searches page titles and content and runs commands |
 | **UX** | Dark / light themes, responsive layout, `prefers-reduced-motion` respected |
 
@@ -87,7 +89,7 @@ CI (`.github/workflows/ci.yml`) runs lint, type check and build, the API tests a
 
 ## Deploy
 
-* **API → Render:** `render.yaml` builds with `npm ci --omit=dev` and starts `node server/server.js`. Set `MONGODB_URI`, `GEMINI_API_KEY` and `CORS_ORIGINS` in the dashboard.
+* **API → Render:** `render.yaml` builds with `npm ci --omit=dev` and starts `node server/server.js`. Set `MONGODB_URI`, `GEMINI_API_KEY` and `CORS_ORIGINS` in the dashboard. For password-reset email, also set `RESEND_API_KEY`, `EMAIL_FROM` (a sender on a domain verified in Resend) and `APP_URL`.
 * **Web → Vercel:** framework preset *Vite*; `vercel.json` already rewrites `/api/*` to the Render service.
 
 ## Project layout
@@ -116,7 +118,8 @@ server/
 ## Known limitations
 
 * No real-time co-editing; two tabs on the same page are detected with version checks (409) and you choose which text to keep.
-* No shared workspaces: every page belongs to one account.
+* No shared workspaces: every page belongs to one account. Pages can be shared read-only by link, not edited together.
+* Password-reset email needs a Resend account and a verified sender domain; without it, reset links only appear in the server log.
 * The free Render instance sleeps, so the first request after a while is slow.
 * The Copilot depends on Google's Gemini API. When Gemini is overloaded, the server retries, then tries `GEMINI_FALLBACK_MODEL` if set, then shows an error.
 * No error monitoring service is wired in yet; errors are logged to the Render console.
@@ -124,8 +127,11 @@ server/
 ## Roadmap
 
 * [x] API integration tests in CI
-* [ ] `useDocSync` unit tests and a Playwright smoke test
-* [ ] Shared workspaces and page sharing
+* [x] Playwright journey test
+* [x] Read-only page sharing
+* [x] Password reset and persistent login lockout
+* [ ] `useDocSync` unit tests
+* [ ] Shared workspaces
 * [ ] Real-time co-editing
 * [ ] Per-user AI usage dashboard
 

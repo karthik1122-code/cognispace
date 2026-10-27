@@ -149,6 +149,11 @@ export function useWorkspace({ onUnauthorized, onError }: Options) {
     };
   }, [docs, activeId, request, onError]);
 
+  /** Updates fields the server already saved (such as the share link) without touching unsaved edits. */
+  const setDocMeta = useCallback((id: string, meta: Partial<Doc>) => {
+    setDocs((p) => p.map((d) => (d.id === id ? { ...d, ...meta } : d)));
+  }, []);
+
   const replaceDoc = useCallback((raw: unknown) => {
     const d = normalizeDoc(raw as Record<string, unknown>);
     sync.discard(d.id);
@@ -210,7 +215,7 @@ export function useWorkspace({ onUnauthorized, onError }: Options) {
 
   return {
     docs, tasks, active, activeId, setActiveId, loading, loadError, reload: load,
-    createDoc, patchDoc, deleteDoc, replaceDoc, randomCover,
+    createDoc, patchDoc, deleteDoc, replaceDoc, setDocMeta, randomCover,
     createTask, updateTask, deleteTask,
     sync, conflict, resolveConflict, headers,
   };

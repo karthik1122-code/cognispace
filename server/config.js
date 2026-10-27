@@ -34,6 +34,10 @@ export const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || process.env.CLIENT_U
   .map((o) => o.trim())
   .filter(Boolean);
 
+// Where links in emails point. Defaults to the first allowed browser origin.
+export const APP_URL = (process.env.APP_URL || ALLOWED_ORIGINS.find((o) => o !== "*") || "http://localhost:5173").replace(/\/+$/, "");
+export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+
 export const AI_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 60);
 export const VERSION_SNAPSHOT_MIN_GAP_MS = 2 * 60 * 1000; // at most one history snapshot per 2 min per doc
 export const MAX_VERSIONS_PER_DOC = 50;
