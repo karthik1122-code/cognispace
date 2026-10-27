@@ -15,6 +15,7 @@ export interface Doc {
   tags?: string[];
   isStarred?: boolean;
   parentId?: string | null;
+  shareId?: string | null;
   version?: number;
   updatedAt?: string;
   createdAt?: string;

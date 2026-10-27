@@ -6,9 +6,13 @@ import mongoose from "mongoose";
 
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = "test-secret";
+process.env.AUTH_RATE_LIMIT = "1000";
 delete process.env.GEMINI_API_KEY;
 
 const { createApp } = await import("./app.js");
+const { setEmailTransport } = await import("./services/email.js");
+const outbox = [];
+setEmailTransport(async (m) => { outbox.push(m); return { sent: true }; });
 
 let mongo, server, base;
 
@@ -151,9 +155,57 @@ test("the AI route needs a session and unknown API routes answer JSON 404", asyn
 });
 
 test("deleting an account needs the password and removes all its data", async () => {
+  const bobId = (await call("/api/auth/me", { cookie: bob })).json.user.id;
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "wrong-pass" } })).status, 401);
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "correct-horse" } })).status, 200);
-  assert.equal((await call("/api/documents", { cookie: bob })).status, 200);
-  assert.equal((await call("/api/documents", { cookie: bob })).json.length, 0);
-  assert.equal((await call("/api/auth/me", { cookie: bob })).status, 401, "a deleted account's cookie no longer signs in");
+  const { Document } = await import("./models/Document.js");
+  const { Task } = await import("./models/Task.js");
+  assert.equal(await Document.countDocuments({ userId: bobId }), 0);
+  assert.equal(await Task.countDocuments({ userId: bobId }), 0);
+  assert.equal((await call("/api/documents", { cookie: bob })).status, 401, "a deleted account's cookie stops working everywhere");
+});
+
+test("forgot password: same reply for any email, and the reset link works once and signs out other devices", async () => {
+  const cookie = (await register("reset@example.com")).cookie;
+  const unknown = await call("/api/auth/forgot", { method: "POST", body: { email: "nobody@example.com" } });
+  const known = await call("/api/auth/forgot", { method: "POST", body: { email: "reset@example.com" } });
+  assert.equal(unknown.status, 200);
+  assert.equal(unknown.json.message, known.json.message, "the reply does not reveal which emails exist");
+  const mail = outbox.find((m) => m.to === "reset@example.com");
+  assert.ok(mail, "an email was sent to the account");
+  assert.ok(!outbox.some((m) => m.to === "nobody@example.com"));
+  const token = mail.text.match(/reset=([A-Za-z0-9_-]+)/)[1];
+
+  assert.equal((await call("/api/auth/reset", { method: "POST", body: { token, password: "short" } })).status, 400);
+  const done = await call("/api/auth/reset", { method: "POST", body: { token, password: "a-brand-new-password" } });
+  assert.equal(done.status, 200);
+  assert.match(done.cookie, /^token=/);
+  assert.equal((await call("/api/auth/me", { cookie })).status, 401, "the old session no longer works");
+  assert.equal((await call("/api/auth/me", { cookie: done.cookie })).status, 200);
+  assert.equal((await call("/api/auth/reset", { method: "POST", body: { token, password: "another-password-1" } })).status, 400, "a link works only once");
+  assert.equal((await call("/api/auth/login", { method: "POST", body: { email: "reset@example.com", password: "a-brand-new-password" } })).status, 200);
+});
+
+test("repeated wrong passwords lock that email from that address, stored in the database", async () => {
+  await register("locked@example.com");
+  const attempt = (password) => call("/api/auth/login", { method: "POST", body: { email: "locked@example.com", password } });
+  for (let i = 0; i < 8; i++) assert.equal((await attempt("wrong-password")).status, 401);
+  assert.equal((await attempt("correct-horse")).status, 429, "even the right password waits once locked");
+  const { LoginAttempt } = await import("./models/LoginAttempt.js");
+  assert.equal((await LoginAttempt.findOne({ key: /^locked@example\.com\|/ }).lean()).count, 8);
+});
+
+test("share links: the owner turns sharing on and off, and the public view is read-only", async () => {
+  const owner = (await register("sharer@example.com")).cookie;
+  const doc = (await call("/api/documents", { method: "POST", cookie: owner, body: { title: "Roadmap", content: "<p>Ship in May</p>" } })).json;
+  const stranger = (await register("stranger@example.com")).cookie;
+  assert.equal((await call(`/api/documents/${doc.id}/share`, { method: "POST", cookie: stranger })).status, 404, "only the owner can share");
+  const { shareId } = (await call(`/api/documents/${doc.id}/share`, { method: "POST", cookie: owner })).json;
+  const view = await call(`/api/share/${shareId}`);
+  assert.equal(view.status, 200);
+  assert.deepEqual(Object.keys(view.json).sort(), ["content", "cover", "icon", "title", "updatedAt"]);
+  assert.equal(view.json.title, "Roadmap");
+  assert.equal((await call(`/api/documents/${doc.id}/share`, { method: "DELETE", cookie: owner })).status, 200);
+  assert.equal((await call(`/api/share/${shareId}`)).status, 404, "turning sharing off breaks the old link");
+  assert.equal((await call("/api/share/not-a-real-share-id-12345")).status, 404);
 });

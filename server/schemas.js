@@ -17,6 +17,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Email and password are required.").max(128),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().max(254).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Enter a valid email address."),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().regex(/^[A-Za-z0-9_-]{20,100}$/, "This reset link is invalid or has expired."),
+  password: z.string().min(8, "Password must be 8-128 characters.").max(128, "Password must be 8-128 characters."),
+});
+
 export const deleteAccountSchema = z.object({
   password: z.string().min(1, "Enter your password to confirm.").max(128),
 });

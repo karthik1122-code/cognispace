@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, Check, Download, FilePlus2, History, Home, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Settings, Sparkles, Star, Sun, Trash2, WifiOff,
+  AlertTriangle, Check, Download, Link2, FilePlus2, History, Home, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Settings, Sparkles, Star, Sun, Trash2, WifiOff,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { PageView } from './PageView';
@@ -13,6 +13,7 @@ import { CopilotPanel } from './CopilotPanel';
 import { VersionHistory } from './VersionHistory';
 import { ToastProvider } from './Toasts';
 import { useToast } from './toastContext';
+import { ShareDialog } from './ShareDialog';
 import { Popover, MenuItem } from '../ui/Popover';
 import { ServerWakeBanner } from '../ui/ServerWakeBanner';
 import { useTheme } from '../../hooks/useTheme';
@@ -76,6 +77,7 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [seedPrompt, setSeedPrompt] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [nonce, setNonce] = useState(0);
 
   const { active, docs } = ws;
@@ -249,6 +251,7 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
                 {(close) => (
                   <>
                     <MenuItem onClick={() => { toggleStar(active.id); close(); }}><Star size={14} /> {active.isStarred ? 'Remove favorite' : 'Add to favorites'}</MenuItem>
+                    <MenuItem onClick={() => { setShareOpen(true); close(); }}><Link2 size={14} /> {active.shareId ? 'Sharing: on' : 'Share read-only link'}</MenuItem>
                     <MenuItem onClick={() => { exportDoc(); close(); }}><Download size={14} /> Export as HTML</MenuItem>
                     <MenuItem danger onClick={() => { removeDoc(active.id); close(); }}><Trash2 size={14} /> Delete page</MenuItem>
                   </>
@@ -351,6 +354,9 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
         />
       )}
 
+      {shareOpen && active && (
+        <ShareDialog docId={active.id} title={active.title} shareId={active.shareId} onChange={(shareId) => ws.setDocMeta(active.id, { shareId })} onClose={() => setShareOpen(false)} />
+      )}
       {historyOpen && active && (
         <VersionHistory
           docId={active.id}

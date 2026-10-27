@@ -11,6 +11,7 @@ import { errorHandler } from "./middleware/errors.js";
 import authRoutes from "./routes/auth.js";
 import documentRoutes from "./routes/documents.js";
 import taskRoutes from "./routes/tasks.js";
+import shareRoutes from "./routes/share.js";
 import { streamAiTransform } from "./controllers/aiController.js";
 
 /** Builds the Express app without connecting to a database or listening, so tests can use it directly. */
@@ -26,6 +27,7 @@ export function createApp({ serveFrontend = true } = {}) {
   app.use("/api/", apiLimiter);
 
   const api = express.Router();
+  api.use(shareRoutes);
   api.use(authRoutes);
   api.use(documentRoutes);
   api.use(taskRoutes);

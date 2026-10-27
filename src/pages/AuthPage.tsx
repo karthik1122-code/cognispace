@@ -17,7 +17,8 @@ interface Props {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLanding }: Props) {
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>(initialMode);
+  const [sent, setSent] = useState('');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
@@ -25,10 +26,11 @@ export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLandin
   const [show, setShow] = useState(false);
 
   const isLogin = mode === 'login';
+  const isForgot = mode === 'forgot';
   const problems = {
-    name: !isLogin && !form.name.trim() ? 'Enter your name' : '',
+    name: mode === 'signup' && !form.name.trim() ? 'Enter your name' : '',
     email: !EMAIL_RE.test(form.email.trim()) ? 'Enter a valid email address' : '',
-    password: isLogin ? (form.password ? '' : 'Enter your password') : form.password.length < 8 ? 'Use at least 8 characters' : '',
+    password: isForgot ? '' : isLogin ? (form.password ? '' : 'Enter your password') : form.password.length < 8 ? 'Use at least 8 characters' : '',
   };
   const valid = !problems.name && !problems.email && !problems.password;
 
@@ -42,6 +44,13 @@ export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLandin
     setLoading(true);
     setError('');
     try {
+      if (isForgot) {
+        const r = await fetch(apiUrl('/api/auth/forgot'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.email }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { setError(d.error || 'Something went wrong. Please try again.'); return; }
+        setSent(d.message || 'If an account uses that email, a reset link is on its way.');
+        return;
+      }
       const res = await fetch(apiUrl(isLogin ? '/api/auth/login' : '/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,11 +78,11 @@ export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLandin
         </div>
 
         <motion.div key={mode} variants={staggerParent} initial="hidden" animate="show" className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-12">
-          <motion.h1 variants={staggerChild} className="text-[30px] font-bold tracking-[-0.035em]">{isLogin ? 'Welcome back' : 'Create your workspace'}</motion.h1>
-          <motion.p variants={staggerChild} className="mb-8 mt-2 text-[14px] text-muted">{isLogin ? 'Log in to pick up where you left off.' : 'Start writing and planning in under a minute.'}</motion.p>
+          <motion.h1 variants={staggerChild} className="text-[30px] font-bold tracking-[-0.035em]">{isForgot ? 'Reset your password' : isLogin ? 'Welcome back' : 'Create your workspace'}</motion.h1>
+          <motion.p variants={staggerChild} className="mb-8 mt-2 text-[14px] text-muted">{isForgot ? 'Enter your email and we will send you a link to choose a new password.' : isLogin ? 'Log in to pick up where you left off.' : 'Start writing and planning in under a minute.'}</motion.p>
 
           <motion.form variants={staggerChild} onSubmit={submit} noValidate className="space-y-4">
-            {!isLogin && (
+            {mode === 'signup' && (
               <Field label="Name" error={err('name')}>
                 <input className={cn('field', err('name') && '!border-danger/60')} autoComplete="name" value={form.name} onChange={set('name')} onBlur={blur('name')} placeholder="Ada Lovelace" />
               </Field>
@@ -81,7 +90,8 @@ export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLandin
             <Field label="Email" error={err('email')}>
               <input className={cn('field', err('email') && '!border-danger/60')} type="email" autoComplete="email" value={form.email} onChange={set('email')} onBlur={blur('email')} placeholder="you@example.com" />
             </Field>
-            <Field label="Password" error={err('password')} hint={!isLogin ? 'At least 8 characters' : undefined}>
+            {sent && <div role="status" className="rounded-lg border border-ok/30 bg-ok/10 px-3 py-2.5 text-[13px]">{sent}</div>}
+            {!isForgot && <Field label="Password" error={err('password')} hint={!isLogin ? 'At least 8 characters' : undefined}>
               <div className="relative">
                 <input
                   className={cn('field pr-10', err('password') && '!border-danger/60')}
@@ -96,18 +106,19 @@ export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLandin
                   {show ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            </Field>
+            </Field>}
+            {isLogin && <button type="button" onClick={() => { setMode('forgot'); setError(''); setSent(''); setTouched({}); }} className="-mt-1 text-[12.5px] text-muted hover:text-fg">Forgot password?</button>}
 
             {error && <div key={error} role="alert" className="shake rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[13px] text-danger">{error}</div>}
 
             <button type="submit" disabled={loading} className="btn-primary !h-11 w-full !rounded-xl !text-[14.5px]">
-              {loading ? <><Loader2 size={16} className="animate-spin" /> {isLogin ? 'Logging in…' : 'Creating account…'}</> : isLogin ? 'Log in' : 'Create account'}
+              {loading ? <><Loader2 size={16} className="animate-spin" /> {isForgot ? 'Sending…' : isLogin ? 'Logging in…' : 'Creating account…'}</> : isForgot ? 'Send reset link' : isLogin ? 'Log in' : 'Create account'}
             </button>
           </motion.form>
 
           <motion.p variants={staggerChild} className="mt-6 text-center text-[13.5px] text-muted">
-            {isLogin ? 'New to CogniSpace?' : 'Already have an account?'}{' '}
-            <button onClick={() => { setMode(isLogin ? 'signup' : 'login'); setError(''); setTouched({}); }} className="font-medium text-accent hover:underline">
+            {isLogin ? 'New to CogniSpace?' : isForgot ? 'Remembered it?' : 'Already have an account?'}{' '}
+            <button onClick={() => { setMode(isLogin ? 'signup' : 'login'); setError(''); setSent(''); setTouched({}); }} className="font-medium text-accent hover:underline">
               {isLogin ? 'Create an account' : 'Log in'}
             </button>
           </motion.p>
