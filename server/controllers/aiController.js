@@ -46,21 +46,35 @@ Output clean HTML fragments (<p>, <ul>, <li>, <strong>, <code>) suitable for a b
           finalPrompt = selectedText ? `Task: ${prompt}\n\nContext:\n${selectedText}` : prompt;
         }
 
+        // Gemini sometimes answers 503 "high demand". Retry with a short backoff, then try the fallback model if one is set.
+        const withTimeout = (promise, ms, label) => Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)),
+        ]);
+        const isTransient = (err) => /503|429|UNAVAILABLE|RESOURCE_EXHAUSTED|timed out|overloaded|high demand/i.test(String(err?.message));
+        const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL;
+        const models = [MODEL, ...(FALLBACK_MODEL && FALLBACK_MODEL !== MODEL ? [FALLBACK_MODEL] : [])];
+
         let responseStream = null;
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          try {
-            responseStream = await ai.models.generateContentStream({
-              model: MODEL,
-              contents: finalPrompt,
-              config: { systemInstruction, temperature: 0.3 },
-            });
-            break;
-          } catch (streamInitErr) {
-            console.warn(`⚠️ [AI Controller] Gemini stream attempt ${attempt} error:`, streamInitErr.message);
-            if (attempt === 2) throw streamInitErr;
-            await new Promise(r => setTimeout(r, 500));
+        let lastError = null;
+        outer: for (const model of models) {
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              responseStream = await withTimeout(
+                ai.models.generateContentStream({ model, contents: finalPrompt, config: { systemInstruction, temperature: 0.3 } }),
+                20000,
+                "Gemini request"
+              );
+              break outer;
+            } catch (streamInitErr) {
+              lastError = streamInitErr;
+              console.warn(`⚠️ [AI Controller] Gemini ${model} attempt ${attempt} error:`, streamInitErr.message);
+              if (!isTransient(streamInitErr)) throw streamInitErr;
+              if (attempt < 3) await new Promise(r => setTimeout(r, 700 * attempt));
+            }
           }
         }
+        if (!responseStream) throw lastError || new Error("Gemini did not respond");
 
         console.log("📡 [AI Controller] Streaming chunks from Gemini to client...");
         let chunkCount = 0;
