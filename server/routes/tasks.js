@@ -10,7 +10,7 @@ router.use("/tasks", requireAuth);
 const out = (t) => ({ ...t, id: t._id.toString() });
 
 router.get("/tasks", async (req, res) => {
-  const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1 }).lean();
+  const tasks = await Task.find({ userId: req.userId }).sort({ createdAt: -1, _id: -1 }).lean();
   res.json(tasks.map((t) => ({ ...out(t), _id: t._id.toString() })));
 });
 

@@ -20,7 +20,7 @@ router.post("/auth/register", authLimiter, validate(registerSchema), async (req,
   const user = await User.create({ name, email, password: await bcrypt.hash(password, 12) });
   await seedUserStarterData(user._id.toString(), user.name);
   const token = signToken(user._id.toString());
-  res.cookie("token", token, COOKIE_OPTIONS).status(201).json({ user: publicUser(user), token });
+  res.cookie("token", token, COOKIE_OPTIONS).status(201).json({ user: publicUser(user) });
 });
 
 router.post("/auth/login", authLimiter, validate(loginSchema), async (req, res) => {
@@ -30,7 +30,7 @@ router.post("/auth/login", authLimiter, validate(loginSchema), async (req, res) 
   const ok = user ? await bcrypt.compare(password, user.password) : false;
   if (!ok) return res.status(401).json({ error: "Incorrect email or password." });
   const token = signToken(user._id.toString());
-  res.cookie("token", token, COOKIE_OPTIONS).json({ user: publicUser(user), token });
+  res.cookie("token", token, COOKIE_OPTIONS).json({ user: publicUser(user) });
 });
 
 router.post("/auth/logout", (_req, res) => {
@@ -39,7 +39,8 @@ router.post("/auth/logout", (_req, res) => {
 
 router.get("/auth/me", requireAuth, async (req, res) => {
   const user = await User.findById(req.userId).select("-password");
-  if (!user) return res.status(404).json({ error: "User not found." });
+  // A valid token for an account that no longer exists is treated as signed out.
+  if (!user) return res.status(401).json({ error: "Invalid or expired session." });
   res.json({ user: publicUser(user) });
 });
 

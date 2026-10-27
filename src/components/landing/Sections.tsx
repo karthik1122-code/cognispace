@@ -65,9 +65,10 @@ export function HowItWorks({ steps }: { steps: { n: string; title: string; body:
 
 /* ---------- Recently shipped ---------- */
 function SavedMock() {
-  const [saved, setSaved] = useState(false);
   const reduce = useReducedMotion();
-  useEffect(() => { if (reduce) { setSaved(true); return; } const id = setInterval(() => setSaved((v) => !v), 1700); return () => clearInterval(id); }, [reduce]);
+  const [toggled, setSaved] = useState(false);
+  const saved = reduce || toggled;
+  useEffect(() => { if (reduce) return; const id = setInterval(() => setSaved((v) => !v), 1700); return () => clearInterval(id); }, [reduce]);
   return (
     <div className="w-full max-w-[250px] rounded-xl border border-line bg-surface p-3.5 shadow-sm">
       <div className="mb-3 flex items-center justify-between"><span className="text-[13px] font-semibold">Roadmap</span>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useSpring, useTransform } from 'framer-motion';
-import { RotatingWords, ScrollProgress, SplitWords, staggerChild, staggerParent } from '../components/ui/motion';
+import { RotatingWords, ScrollProgress, SplitWords } from '../components/ui/motion';
+import { staggerChild, staggerParent } from '../components/ui/variants';
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, GitBranch, Moon, Sun, X } from 'lucide-react';
 import { Logo } from '../components/landing/Logo';
 import { LiveDemo } from '../components/landing/LiveDemo';

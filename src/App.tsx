@@ -12,9 +12,7 @@ import type { AuthUser } from './lib/types';
 export type { AuthUser };
 type AppView = 'landing' | 'auth' | 'app';
 
-function readStorage(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
+// Sessions live only in the httpOnly cookie. Older builds kept a token in localStorage; clear it.
 function clearSession() {
   try { localStorage.removeItem('cognispace_user'); localStorage.removeItem('auth_token'); } catch { /* ignore */ }
 }
@@ -27,24 +25,21 @@ export function App() {
   const [view, setView] = useState<AppView>('landing');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 
   // Rehydrate the session from the cookie / stored token.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const token = readStorage('auth_token');
-        const res = await fetch(apiUrl('/api/auth/me'), {
-          credentials: 'include',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (!cancelled && data?.user) {
             setUser(data.user);
             setView('app');
           }
-        } else if (res.status === 401) {
+        } else {
           clearSession();
         }
       } catch {
@@ -81,8 +76,8 @@ export function App() {
   return (
     <Suspense fallback={loading}>
     <AnimatePresence mode="wait" initial={false}>
-      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => setView('auth')} onLogin={() => setView('auth')} /></Fade>}
-      {view === 'auth' && <Fade k="auth"><AuthPage onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
+      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => { setAuthMode('signup'); setView('auth'); }} onLogin={() => { setAuthMode('login'); setView('auth'); }} /></Fade>}
+      {view === 'auth' && <Fade k="auth"><AuthPage initialMode={authMode} onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
       {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
     </AnimatePresence>
     </Suspense>

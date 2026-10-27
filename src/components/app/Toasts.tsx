@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { ToastContext as Ctx, type ToastApi } from './toastContext';
 
 interface ToastItem {
   id: number;
@@ -10,12 +11,6 @@ interface ToastItem {
   onAction?: () => void;
 }
 
-interface ToastApi {
-  toast: (message: string, opts?: { tone?: 'default' | 'error'; actionLabel?: string; onAction?: () => void; ms?: number }) => void;
-}
-
-const Ctx = createContext<ToastApi>({ toast: () => undefined });
-export const useToast = () => useContext(Ctx);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);

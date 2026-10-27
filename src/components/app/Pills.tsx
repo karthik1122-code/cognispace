@@ -2,26 +2,14 @@ import { Check } from 'lucide-react';
 import { Popover, MenuItem } from '../ui/Popover';
 import { cn } from '../../lib/cn';
 import { PRIORITIES, STATUSES, type Priority, type Status } from '../../lib/types';
+import { PRIORITY_STYLE, STATUS_STYLE } from '../../lib/taskStyles';
 
-export const STATUS_STYLE: Record<Status, { dot: string; text: string }> = {
-  Backlog: { dot: 'bg-faint', text: 'text-muted' },
-  'In Progress': { dot: 'bg-warn', text: 'text-warn' },
-  'In Review': { dot: 'bg-accent', text: 'text-accent' },
-  Done: { dot: 'bg-ok', text: 'text-ok' },
-};
-
-export const PRIORITY_STYLE: Record<Priority, { bar: string; text: string }> = {
-  Urgent: { bar: 'bg-danger', text: 'text-danger' },
-  High: { bar: 'bg-warn', text: 'text-warn' },
-  Medium: { bar: 'bg-accent', text: 'text-accent' },
-  Low: { bar: 'bg-faint', text: 'text-muted' },
-};
-
-export function StatusPill({ value, onChange }: { value: Status; onChange: (s: Status) => void }) {
+/** `compact` shows only the coloured dot (used on board cards, where the column already names the status). */
+export function StatusPill({ value, onChange, compact = false }: { value: Status; onChange: (s: Status) => void; compact?: boolean }) {
   const s = STATUS_STYLE[value];
   return (
     <Popover trigger={({ toggle }) => (
-      <button onClick={toggle} className="pill hover:bg-fg/[0.07]"><span className={cn('h-2 w-2 rounded-full', s.dot)} />{value}</button>
+      <button onClick={toggle} aria-label={`Status: ${value}. Change status`} className={cn('pill hover:bg-fg/[0.07]', compact && '!px-2')}><span className={cn('h-2 w-2 rounded-full', s.dot)} />{!compact && value}</button>
     )}>
       {(close) => STATUSES.map((st) => (
         <MenuItem key={st} active={st === value} onClick={() => { onChange(st); close(); }}>

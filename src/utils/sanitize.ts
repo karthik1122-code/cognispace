@@ -19,7 +19,7 @@ function isSafeHref(href: string): boolean {
   return /^(https?:|mailto:|#|\/)/i.test(href.trim());
 }
 
-function cleanNode(node: Node, doc: Document): void {
+function cleanNode(node: Node): void {
   for (const child of Array.from(node.childNodes)) {
     if (child.nodeType === Node.COMMENT_NODE) {
       node.removeChild(child);
@@ -34,7 +34,7 @@ function cleanNode(node: Node, doc: Document): void {
       continue;
     }
 
-    cleanNode(el, doc);
+    cleanNode(el);
 
     if (!ALLOWED_TAGS.has(tag)) {
       while (el.firstChild) node.insertBefore(el.firstChild, el);
@@ -58,7 +58,7 @@ function cleanNode(node: Node, doc: Document): void {
 export function sanitizeHtml(dirty: string): string {
   if (!dirty) return '';
   const doc = new DOMParser().parseFromString(`<body>${dirty}</body>`, 'text/html');
-  cleanNode(doc.body, doc);
+  cleanNode(doc.body);
   return doc.body.innerHTML;
 }
 

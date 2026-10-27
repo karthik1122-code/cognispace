@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { staggerChild, staggerParent } from '../components/ui/motion';
+import { staggerChild, staggerParent } from '../components/ui/variants';
 import { ArrowLeft, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { apiUrl } from '../utils/api';
 import { Logo } from '../components/landing/Logo';
@@ -9,14 +9,15 @@ import { cn } from '../lib/cn';
 import type { AuthUser } from '../lib/types';
 
 interface Props {
+  initialMode?: 'login' | 'signup';
   onLoginSuccess: (user: AuthUser) => void;
   onBackToLanding?: () => void;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function AuthPage({ onLoginSuccess, onBackToLanding }: Props) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+export function AuthPage({ initialMode = 'login', onLoginSuccess, onBackToLanding }: Props) {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
@@ -49,10 +50,6 @@ export function AuthPage({ onLoginSuccess, onBackToLanding }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error || 'Something went wrong. Please try again.'); return; }
-      try {
-        localStorage.setItem('cognispace_user', JSON.stringify(data.user));
-        if (data.token) localStorage.setItem('auth_token', data.token);
-      } catch { /* storage blocked: the cookie still authenticates */ }
       onLoginSuccess(data.user);
     } catch {
       setError('Can’t reach the server. If it was idle, it may be waking up — wait a few seconds and try again.');

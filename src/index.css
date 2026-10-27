@@ -53,6 +53,11 @@
 ::-webkit-scrollbar-thumb:hover { background: rgb(var(--fg) / 0.22); background-clip: content-box; border: 3px solid transparent; }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* Row actions that appear on hover. They stay reachable by keyboard (focus) and are always shown on touch screens. */
+.reveal-on-hover { opacity: 0; transition: opacity 0.15s; }
+.group:hover .reveal-on-hover, .group:focus-within .reveal-on-hover, .reveal-on-hover:focus-visible { opacity: 1; }
+@media (hover: none) { .reveal-on-hover { opacity: 1; } }
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 h-8 text-[13px] font-medium select-none

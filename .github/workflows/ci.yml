@@ -21,3 +21,7 @@ jobs:
         run: npm run build
       - name: API tests (embedded MongoDB)
         run: npm test
+      - name: Install Chromium for the browser test
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end journey (real browser, real server)
+        run: npm run test:e2e

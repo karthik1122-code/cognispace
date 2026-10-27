@@ -58,6 +58,7 @@ test("register validates input and rejects duplicates", async () => {
   assert.equal(a.status, 201);
   assert.equal(a.json.user.email, "alice@example.com", "email is normalised");
   assert.match(a.cookie, /^token=/);
+  assert.equal(a.json.token, undefined, "the session token stays in the httpOnly cookie, not the response body");
   alice = a.cookie;
   assert.equal((await register("alice@example.com")).status, 409);
   bob = (await register("bob@example.com")).cookie;
@@ -121,6 +122,17 @@ test("sub-pages keep their parent, and a parent must be yours", async () => {
   assert.equal(stolen.status, 400);
 });
 
+test("deleting a page removes its sub-pages, and a page cannot be moved under its own child", async () => {
+  const top = (await call("/api/documents", { method: "POST", cookie: alice, body: { title: "Top" } })).json;
+  const mid = (await call("/api/documents", { method: "POST", cookie: alice, body: { title: "Mid", parentId: top.id } })).json;
+  const leaf = (await call("/api/documents", { method: "POST", cookie: alice, body: { title: "Leaf", parentId: mid.id } })).json;
+  assert.equal((await call(`/api/documents/${top.id}`, { method: "PATCH", cookie: alice, body: { parentId: leaf.id } })).status, 400);
+  assert.equal((await call(`/api/documents/${top.id}`, { method: "PATCH", cookie: alice, body: { parentId: top.id } })).status, 400);
+  const del = await call(`/api/documents/${top.id}`, { method: "DELETE", cookie: alice });
+  assert.equal(del.json.deleted, 3);
+  assert.equal((await call(`/api/documents/${leaf.id}`, { cookie: alice })).status, 404);
+});
+
 test("tasks: create, validate, update and delete", async () => {
   const t = await call("/api/tasks", { method: "POST", cookie: alice, body: { name: "Ship it", priority: "High" } });
   assert.equal(t.status, 201);
@@ -143,4 +155,5 @@ test("deleting an account needs the password and removes all its data", async ()
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "correct-horse" } })).status, 200);
   assert.equal((await call("/api/documents", { cookie: bob })).status, 200);
   assert.equal((await call("/api/documents", { cookie: bob })).json.length, 0);
+  assert.equal((await call("/api/auth/me", { cookie: bob })).status, 401, "a deleted account's cookie no longer signs in");
 });

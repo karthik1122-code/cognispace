@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AnimatePresence, animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type Variants } from 'framer-motion';
+import { AnimatePresence, animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { cn } from '../../lib/cn';
 
-const EASE = [0.2, 0.7, 0.2, 1] as const;
+import { EASE } from './variants';
 
 /** Fade + rise when scrolled into view. Respects reduced motion. */
 export function Reveal({ children, delay = 0, y = 18, className }: { children: ReactNode; delay?: number; y?: number; className?: string }) {
@@ -20,8 +20,6 @@ export function Reveal({ children, delay = 0, y = 18, className }: { children: R
   );
 }
 
-export const staggerParent: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-export const staggerChild: Variants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } };
 
 /** Thin accent bar at the top of the page that tracks scroll. */
 export function ScrollProgress() {
