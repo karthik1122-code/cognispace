@@ -16,9 +16,5 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    define: {
-      // Expose API base URL to client (used in production fetch calls)
-      __API_URL__: JSON.stringify(env.VITE_API_URL || ''),
-    },
   }
 })

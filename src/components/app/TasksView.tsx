@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountUp } from '../ui/motion';
 import { CalendarDays, LayoutGrid, Plus, Rows3, Trash2 } from 'lucide-react';
-import { Avatar, PRIORITY_STYLE, PriorityPill, STATUS_STYLE, StatusPill } from './Pills';
+import { Avatar, PriorityPill, StatusPill } from './Pills';
+import { PRIORITY_STYLE, STATUS_STYLE } from '../../lib/taskStyles';
 import { cn } from '../../lib/cn';
 import { STATUSES, type Status, type Task } from '../../lib/types';
 
@@ -106,18 +107,23 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                       >
                         <div className="flex items-start gap-2">
                           <span className={cn('mt-1 h-3.5 w-[3px] flex-none rounded-full', PRIORITY_STYLE[t.priority].bar)} title={`${t.priority} priority`} />
-                          <input
+                          {/* Wraps long names instead of cutting them off; Enter saves. */}
+                          <textarea
                             defaultValue={t.name}
                             aria-label="Task name"
+                            rows={1}
+                            maxLength={200}
                             onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.name) onUpdate(t.id, { name: v }); else e.target.value = t.name; }}
-                            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                            className="min-w-0 flex-1 bg-transparent text-[13.5px] font-medium outline-none"
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }}
+                            className="min-w-0 flex-1 resize-none bg-transparent text-[13.5px] font-medium leading-snug outline-none [field-sizing:content]"
                           />
-                          <button aria-label="Delete task" onClick={() => onDelete(t.id)} className="hidden text-faint hover:text-danger group-hover:block"><Trash2 size={13} /></button>
+                          <button aria-label={`Delete task ${t.name}`} onClick={() => onDelete(t.id)} className="reveal-on-hover text-faint hover:text-danger"><Trash2 size={13} /></button>
                         </div>
-                        <div className="mt-3 flex items-center gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <PriorityPill value={t.priority} onChange={(priority) => onUpdate(t.id, { priority })} />
-                          <span className="ml-auto flex items-center gap-1 text-[11.5px] text-faint"><CalendarDays size={11} />{t.dueDate}</span>
+                          {/* Moving a card without dragging: works with a keyboard and on touch screens. */}
+                          <StatusPill compact value={t.status} onChange={(status) => onUpdate(t.id, { status, progress: status === 'Done' ? 100 : t.progress })} />
+                          <span className="ml-auto flex items-center gap-1 whitespace-nowrap text-[11.5px] text-faint"><CalendarDays size={11} />{t.dueDate}</span>
                           <Avatar name={t.assignee || userName} size={20} />
                         </div>
                         {t.progress > 0 && t.progress < 100 && (
@@ -157,7 +163,7 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                     <td className="px-3"><PriorityPill value={t.priority} onChange={(priority) => onUpdate(t.id, { priority })} /></td>
                     <td className="px-3"><span className="flex items-center gap-2 text-muted"><Avatar name={t.assignee || userName} size={20} />{t.assignee}</span></td>
                     <td className="px-3 text-muted">{t.dueDate}</td>
-                    <td className="pr-3 text-right"><button aria-label="Delete task" onClick={() => onDelete(t.id)} className="invisible text-faint hover:text-danger group-hover:visible"><Trash2 size={14} /></button></td>
+                    <td className="pr-3 text-right"><button aria-label={`Delete task ${t.name}`} onClick={() => onDelete(t.id)} className="reveal-on-hover text-faint hover:text-danger"><Trash2 size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>

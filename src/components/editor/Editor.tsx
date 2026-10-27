@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useEditor, EditorContent, type Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskList from '@tiptap/extension-task-list';
@@ -50,16 +50,18 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
   const matchesRef = useRef<SlashItem[]>(ITEMS);
   const askRef = useRef(onAskAI);
   const changeRef = useRef(onChange);
-  slashRef.current = slash;
-  indexRef.current = index;
-  askRef.current = onAskAI;
-  changeRef.current = onChange;
 
   const matches = useMemo(() => {
     const q = slash?.query.toLowerCase().trim() ?? '';
     return q ? ITEMS.filter((i) => `${i.label} ${i.keywords}`.toLowerCase().includes(q)) : ITEMS;
   }, [slash?.query]);
-  matchesRef.current = matches;
+  useLayoutEffect(() => {
+    slashRef.current = slash;
+    indexRef.current = index;
+    askRef.current = onAskAI;
+    changeRef.current = onChange;
+    matchesRef.current = matches;
+  });
 
   const editor = useEditor({
     extensions: [

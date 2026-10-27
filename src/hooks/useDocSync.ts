@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { apiUrl } from '../utils/api';
 
 export type SyncState = 'saved' | 'saving' | 'retrying' | 'conflict' | 'error';
@@ -31,8 +31,9 @@ export function useDocSync<T extends { version?: number }>({ getHeaders, onSaved
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const inflight = useRef<Set<string>>(new Set());
   const attempts = useRef<Map<string, number>>(new Map());
+  // Latest callbacks, read inside timers and fetches without restarting them.
   const cb = useRef({ getHeaders, onSaved, onConflict });
-  cb.current = { getHeaders, onSaved, onConflict };
+  useLayoutEffect(() => { cb.current = { getHeaders, onSaved, onConflict }; });
 
   const recompute = useCallback(() => {
     if (pending.current.size > 0 || inflight.current.size > 0) {
@@ -40,7 +41,7 @@ export function useDocSync<T extends { version?: number }>({ getHeaders, onSaved
     }
   }, []);
 
-  const send = useCallback(async (docId: string) => {
+  const send = useCallback(async function sendNow(docId: string): Promise<void> {
     if (inflight.current.has(docId)) return;
     const patch = pending.current.get(docId);
     if (!patch) return;
@@ -90,14 +91,14 @@ export function useDocSync<T extends { version?: number }>({ getHeaders, onSaved
       } else {
         setState('retrying');
         retryScheduled = true;
-        timers.current.set(docId, setTimeout(() => { inflight.current.delete(docId); void send(docId); }, BACKOFF_MS[n]));
+        timers.current.set(docId, setTimeout(() => { inflight.current.delete(docId); void sendNow(docId); }, BACKOFF_MS[n]));
       }
     } finally {
       if (!retryScheduled) inflight.current.delete(docId);
     }
 
     // Edits that arrived while this request was in flight.
-    if (!retryScheduled && pending.current.has(docId)) void send(docId);
+    if (!retryScheduled && pending.current.has(docId)) void sendNow(docId);
   }, []);
 
   /** Queue a change. Safe to call on every keystroke. */

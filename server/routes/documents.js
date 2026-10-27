@@ -18,8 +18,19 @@ async function parentIsValid(parentId, userId) {
   return parentId == null || !!(await Document.exists({ _id: parentId, userId }));
 }
 
+// Moving a page under one of its own sub-pages would create a loop, so walk up from the new parent.
+async function canMoveUnder(docId, parentId, userId) {
+  if (parentId == null) return true;
+  if (!(await parentIsValid(parentId, userId))) return false;
+  for (let id = parentId, steps = 0; id && steps < 100; steps++) {
+    if (String(id) === String(docId)) return false;
+    id = (await Document.findOne({ _id: id, userId }).select("parentId").lean())?.parentId;
+  }
+  return true;
+}
+
 router.get("/documents", async (req, res) => {
-  const docs = await Document.find({ userId: req.userId, isArchived: false }).sort({ updatedAt: -1 }).lean();
+  const docs = await Document.find({ userId: req.userId, isArchived: false }).sort({ updatedAt: -1, _id: -1 }).lean();
   res.json(docs.map(out));
 });
 
@@ -52,8 +63,8 @@ router.get("/documents/:id", async (req, res) => {
 // silently overwriting another tab's work.
 router.patch("/documents/:id", validate(updateDocumentSchema), async (req, res) => {
   const { baseVersion, ...updates } = req.body;
-  if ("parentId" in updates && (updates.parentId === req.params.id || !(await parentIsValid(updates.parentId, req.userId)))) {
-    return res.status(400).json({ error: "Parent page not found." });
+  if ("parentId" in updates && !(await canMoveUnder(req.params.id, updates.parentId, req.userId))) {
+    return res.status(400).json({ error: "A page cannot be moved under itself or a missing page." });
   }
   const filter = { _id: req.params.id, userId: req.userId };
   if (typeof baseVersion === "number") filter.version = baseVersion;
@@ -95,11 +106,21 @@ router.post("/documents/:id/versions/:versionId/restore", async (req, res) => {
   res.json(out(restored));
 });
 
+// Deleting a page also deletes its sub-pages (all levels) and their history, so no page is left
+// pointing at a parent that no longer exists (it would be invisible in the sidebar).
 router.delete("/documents/:id", async (req, res) => {
-  const deleted = await Document.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!deleted) return res.status(404).json({ error: "Document not found." });
-  await DocumentVersion.deleteMany({ documentId: deleted._id });
-  res.json({ message: "Document deleted successfully." });
+  const root = await Document.findOne({ _id: req.params.id, userId: req.userId }).select("_id").lean();
+  if (!root) return res.status(404).json({ error: "Document not found." });
+  const seen = new Set([String(root._id)]);
+  for (let level = [root._id]; level.length; ) {
+    const kids = await Document.find({ userId: req.userId, parentId: { $in: [...level, ...level.map(String)] } }).select("_id").lean();
+    level = kids.map((k) => k._id).filter((id) => !seen.has(String(id))); // `seen` also stops a parent loop
+    level.forEach((id) => seen.add(String(id)));
+  }
+  const ids = [...seen];
+  await Document.deleteMany({ _id: { $in: ids }, userId: req.userId });
+  await DocumentVersion.deleteMany({ documentId: { $in: ids } });
+  res.json({ message: "Document deleted successfully.", deleted: ids.length });
 });
 
 export default router;

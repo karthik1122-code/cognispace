@@ -48,15 +48,10 @@ export function useWorkspace({ onUnauthorized, onError }: Options) {
   const [conflict, setConflict] = useState<Doc | null>(null);
   const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  const headers = useCallback((): Record<string, string> => {
-    const h: Record<string, string> = { 'Content-Type': 'application/json' };
-    let token: string | null = null;
-    try { token = localStorage.getItem('auth_token'); } catch { /* ignore */ }
-    if (token) h.Authorization = `Bearer ${token}`;
-    return h;
-  }, []);
+  // The session is the httpOnly cookie (sent via credentials: 'include'), so only the content type is needed.
+  const headers = useCallback((): Record<string, string> => ({ 'Content-Type': 'application/json' }), []);
 
-  /** fetch wrapper: auth headers, cookie, 401 handling. */
+  /** fetch wrapper: JSON headers, session cookie, 401 handling. */
   const request = useCallback(async (path: string, init: RequestInit = {}) => {
     const res = await fetch(apiUrl(path), { credentials: 'include', ...init, headers: { ...headers(), ...(init.headers as Record<string, string> | undefined) } });
     if (res.status === 401) onUnauthorized();

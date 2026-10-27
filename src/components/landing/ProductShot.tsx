@@ -10,14 +10,15 @@ const LINES = [
 
 /** A pure-CSS/React illustration of the product. Nothing here is real data. */
 export function ProductShot() {
-  const [n, setN] = useState(0);
   const total = LINES.join('\n').length;
+  const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [n, setN] = useState(still ? total : 0);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setN(total); return; }
+    if (still) return;
     const t = setInterval(() => setN((x) => (x >= total + 40 ? 0 : x + 1)), 55);
     return () => clearInterval(t);
-  }, [total]);
+  }, [total, still]);
 
   const typed = LINES.join('\n').slice(0, Math.min(n, total)).split('\n');
   const aiOn = n > total - 6;

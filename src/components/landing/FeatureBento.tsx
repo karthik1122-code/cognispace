@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { Download, Search, ShieldCheck, Undo2 } from 'lucide-react';
-import { SpotlightCard, staggerChild, staggerParent } from '../ui/motion';
+import { SpotlightCard } from '../ui/motion';
+import { staggerChild, staggerParent } from '../ui/variants';
 import { cn } from '../../lib/cn';
 
 /** Types a string out once the element is on screen. Shows the full text under reduced motion. */

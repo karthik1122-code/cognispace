@@ -48,7 +48,7 @@ export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed }: Prop
     <div className="h-full overflow-y-auto" data-page-scroll>
       {doc.cover ? (
         <div className="group relative h-[168px] w-full" style={{ background: doc.cover }}>
-          <div className="absolute bottom-3 right-4 hidden gap-2 group-hover:flex">
+          <div className="reveal-on-hover absolute bottom-3 right-4 flex gap-2">
             <Popover align="right" trigger={({ toggle }) => <button onClick={toggle} className="btn-outline !bg-black/40 !text-white backdrop-blur">Change cover</button>}>
               {(close) => (
                 <div className="grid grid-cols-5 gap-1.5 p-1.5">
@@ -99,7 +99,7 @@ export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed }: Prop
           {(doc.tags ?? []).map((t) => (
             <span key={t} className="pill group">
               {t}
-              <button aria-label={`Remove ${t}`} onClick={() => onPatch({ tags: (doc.tags ?? []).filter((x) => x !== t) })} className="hidden text-faint hover:text-fg group-hover:block"><X size={11} /></button>
+              <button aria-label={`Remove ${t}`} onClick={() => onPatch({ tags: (doc.tags ?? []).filter((x) => x !== t) })} className="reveal-on-hover text-faint hover:text-fg"><X size={11} /></button>
             </span>
           ))}
           <form onSubmit={(e) => { e.preventDefault(); addTag(); }} className="flex items-center">

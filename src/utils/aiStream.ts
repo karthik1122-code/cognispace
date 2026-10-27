@@ -27,10 +27,7 @@ export async function streamAiToEditor({
   try {
     const response = await fetch(apiUrl('/api/ai/transform'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ prompt, selectedText, documentTitle, mode }),
       signal, // Attaches the abort signal to the HTTP request

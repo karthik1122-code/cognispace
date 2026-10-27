@@ -43,7 +43,7 @@ export function Sidebar(p: SidebarProps) {
     return (
       <div>
         <div
-          className={cn('group flex h-8 items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors', active ? 'bg-fg/[0.08] text-fg' : 'text-muted hover:bg-fg/[0.05] hover:text-fg')}
+          className={cn('group relative flex h-8 items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors', active ? 'bg-fg/[0.08] text-fg' : 'text-muted hover:bg-fg/[0.05] hover:text-fg')}
           style={{ paddingLeft: 6 + depth * 14 }}
         >
           <button
@@ -57,7 +57,7 @@ export function Sidebar(p: SidebarProps) {
             <span className="flex-none text-[15px] leading-none">{doc.icon || '📄'}</span>
             <span className="truncate">{doc.title || 'Untitled'}</span>
           </button>
-          <span className="hidden items-center gap-0.5 group-hover:flex">
+          <span className="reveal-on-hover absolute right-1 flex items-center gap-0.5 rounded-md bg-sidebar pl-1">
             <IconBtn label="Add sub-page" onClick={() => { setExpanded((s) => new Set(s).add(doc.id)); p.onNewDoc(TEMPLATES[0], doc.id); }}><Plus size={13} /></IconBtn>
             <IconBtn label={doc.isStarred ? 'Unstar' : 'Star'} onClick={() => p.onToggleStar(doc.id)}><Star size={13} className={cn(doc.isStarred && 'fill-warn text-warn')} /></IconBtn>
             <IconBtn label="Delete" onClick={() => p.onDeleteDoc(doc.id)}><Trash2 size={13} /></IconBtn>

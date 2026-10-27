@@ -10,6 +10,12 @@
 
 > The API runs on a free Render instance and sleeps when idle. The first request can take up to ~30 seconds; the app shows a "Waking up the server" banner while it starts.
 
+## Who it is for
+
+Students and small teams who keep notes in one app, tasks in another and paste text into a chatbot in a third tab. CogniSpace keeps pages, a sprint board and an AI Copilot in one place, and the Copilot works on the page you are already on, so nothing needs copying back and forth.
+
+The core promise is trust: your writing is never lost or silently overwritten, and AI text never lands on the page without your review.
+
 ![Landing page](docs/landing.png)
 
 ![Animated product demo: write, Copilot, board, history](docs/live-demo.png)
@@ -21,7 +27,7 @@
 | **Home** | Greeting, workspace stats, recent pages, in-flight tasks, first-run checklist |
 | **Editor** | TipTap block editor: headings, to-dos, toggles, quotes, code, dividers. `/` menu with keyboard navigation and filtering. Selection toolbar |
 | **Copilot** | Gemini streaming over SSE. Improve / summarize a selection, or ask about the open page. Review, insert, undo. Stop button |
-| **Sprint board** | Drag-and-drop Kanban + table view, inline editing, sprint progress |
+| **Sprint board** | Drag-and-drop Kanban + table view, inline editing, sprint progress. Every card also has a status menu, so tasks can be moved with a keyboard or on a phone |
 | **Reliability** | Autosave only reports *Saved* after the server confirms. Offline retries with backoff. Optimistic concurrency (version check) with a "load theirs / keep mine" flow |
 | **History** | Automatic snapshots (at most one per 2 min, 50 per page). One-click restore that keeps the overwritten text in history |
 | **Safety nets** | Undo for page delete and AI inserts. Export a page as HTML, or all data as JSON. Delete account (password-confirmed) |
@@ -40,10 +46,12 @@ React 19 + Vite + Tailwind  ──HTTPS──▶  Express 5 API  ──▶  Mong
    └────────────────────────────────────────────────▶ /api/ai/transform
 ```
 
-* **Auth:** bcrypt (cost 12) + JWT (7 days) in an `httpOnly` cookie, with a Bearer-token fallback for browsers that block third-party cookies.
+* **Auth:** bcrypt (cost 12) + JWT (7 days) in an `httpOnly` cookie only. The token is never put in the response body or in `localStorage`, so page scripts cannot read it. On Vercel, `/api` is rewritten to Render, so the cookie is first-party.
 * **Documents** carry a `version`. `PATCH` accepts `baseVersion`; a mismatch returns `409` with the current document instead of overwriting.
 * **Version history** is a separate `DocumentVersion` collection, trimmed to the 50 newest per page.
 * **AI** output is sanitized with an allowlist sanitizer before it is rendered or inserted.
+* **Validation:** every write is checked by a zod schema in `server/schemas.js` before it reaches MongoDB; unknown fields are dropped.
+* **Pages** can be nested. Deleting a page deletes its sub-pages, and a page cannot be moved under its own child.
 * **Rate limits:** global, auth (20 / 15 min) and AI (10 / min and `AI_DAILY_LIMIT` per user per day).
 
 ### Design decisions worth knowing
@@ -62,7 +70,10 @@ cp .env.example .env     # optional in development
 npm start                # API on :3001 (embedded in-memory MongoDB when MONGODB_URI is empty)
 npm run dev              # Vite on :5173 (proxies /api to :3001)
 npm test                 # API tests against an embedded MongoDB
+npm run build && npm run test:e2e   # browser journey: sign up, write, reload, board, palette, log out
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, type check and build, the API tests and the browser journey on every push and pull request.
 
 | Variable | Required in prod | Purpose |
 | --- | --- | --- |
@@ -101,6 +112,14 @@ server/
   models/              User, Document, DocumentVersion, Task
   app.test.js          API tests: auth, privacy, 409 conflicts, validation, tasks, account deletion
 ```
+
+## Known limitations
+
+* No real-time co-editing; two tabs on the same page are detected with version checks (409) and you choose which text to keep.
+* No shared workspaces: every page belongs to one account.
+* The free Render instance sleeps, so the first request after a while is slow.
+* The Copilot depends on Google's Gemini API. When Gemini is overloaded, the server retries, then tries `GEMINI_FALLBACK_MODEL` if set, then shows an error.
+* No error monitoring service is wired in yet; errors are logged to the Render console.
 
 ## Roadmap
 

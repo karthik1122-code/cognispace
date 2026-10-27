@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CountUp, Ring, SplitWords, staggerChild, staggerParent } from '../ui/motion';
+import { CountUp, Ring, SplitWords } from '../ui/motion';
+import { staggerChild, staggerParent } from '../ui/variants';
 import { ArrowRight, Check, CheckCircle2, FileText, KanbanSquare, Plus, Sparkles, X } from 'lucide-react';
-import { STATUS_STYLE } from './Pills';
+import { STATUS_STYLE } from '../../lib/taskStyles';
 import { TEMPLATES, type DocTemplate } from '../../hooks/useWorkspace';
 import type { OnboardingStep } from '../../hooks/useOnboarding';
 import { cn } from '../../lib/cn';

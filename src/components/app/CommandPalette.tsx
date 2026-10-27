@@ -23,13 +23,18 @@ interface Props {
 
 type Row = { kind: 'action'; action: PaletteAction } | { kind: 'doc'; doc: Doc; snippet: string };
 
-export function CommandPalette({ open, onClose, docs, actions, onOpenDoc }: Props) {
+/** Mounting the panel only while open gives every opening a fresh, empty search. */
+export function CommandPalette(props: Props) {
+  return props.open ? <PalettePanel {...props} /> : null;
+}
+
+function PalettePanel({ onClose, docs, actions, onOpenDoc }: Props) {
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (open) { setQ(''); setI(0); setTimeout(() => inputRef.current?.focus(), 0); } }, [open]);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const rows = useMemo<Row[]>(() => {
     const needle = q.trim().toLowerCase();
@@ -47,12 +52,10 @@ export function CommandPalette({ open, onClose, docs, actions, onOpenDoc }: Prop
     return [...acts.map<Row>((a) => ({ kind: 'action', action: a })), ...hits];
   }, [q, docs, actions]);
 
-  useEffect(() => { setI(0); }, [q]);
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-i="${i}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [i]);
 
-  if (!open) return null;
 
   const choose = (row?: Row) => {
     if (!row) return;
@@ -82,7 +85,7 @@ export function CommandPalette({ open, onClose, docs, actions, onOpenDoc }: Prop
           <input
             ref={inputRef}
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setI(0); }}
             placeholder="Search pages, or run a command…"
             className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-faint"
             aria-label="Search"
