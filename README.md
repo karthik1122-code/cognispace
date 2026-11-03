@@ -94,26 +94,57 @@ CI (`.github/workflows/ci.yml`) runs lint, type check and build, the API tests a
 
 ## Project layout
 
+A request goes through the same layers every time, and each layer only talks to the one below it:
+
 ```
-src/
-  components/app/      Workspace shell, Home, Sidebar, Page, Sprint board, Copilot, Palette, Settings, History
-  components/editor/   TipTap editor + slash menu
-  components/landing/  Landing illustrations
-  hooks/               useDocSync (autosave), useWorkspace (data), useCopilot, useTheme, useOnboarding
-  utils/               sanitize, aiStream (SSE), api
+request -> middleware (security, CORS, rate limit, auth, validation) -> routes -> controllers -> services -> models -> MongoDB
+```
+
+```
+src/                              React 19 + TypeScript (Vite)
+  App.tsx                         Picks the landing page, auth, reset, shared page or the workspace
+  pages/                          LandingPage, AuthPage, ResetPasswordPage, SharedPage
+  components/app/                 Workspace shell, Home, Sidebar, Page, Sprint board, Copilot, Palette, Settings, History, Share
+  components/editor/              TipTap editor + slash menu
+  components/landing/             Landing sections and illustrations
+  components/ui/                  Popover, motion helpers
+  hooks/                          useWorkspace (data), useDocSync (autosave + conflicts), useCopilot, useTheme, useOnboarding
+  lib/types.ts                    Shared front-end types (Doc, Task, User)
+  utils/                          api, aiStream (SSE reader), sanitize
 server/
-  server.js            Boot: connect the database, listen, shut down cleanly
-  app.js               createApp(): middleware and routes, no I/O (what the tests use)
-  config.js            Environment, secrets, cookie and limit settings
-  db.js                MongoDB connection (embedded database in development only)
-  schemas.js           zod request schemas for every write
-  routes/              auth, documents (versions, conflicts), tasks
-  middleware/          auth, validation, CORS and security headers, rate limits, errors
-  services/            starter data, version snapshots
-  controllers/         aiController (Gemini streaming with retries and fallback)
-  models/              User, Document, DocumentVersion, Task
-  app.test.js          API tests: auth, privacy, 409 conflicts, validation, tasks, account deletion
+  server.js                       Boot: connect the database, listen, shut down cleanly
+  app.js                          createApp(): middleware and /api, no I/O (what the tests use)
+  config.js                       Environment, secrets, cookie and limit settings
+  db.js                           MongoDB connection (embedded database in development only)
+  schemas.js                      zod request schemas for every write
+  routes/                         URL + middleware -> controller, nothing else
+    index.js                      Mounts every router under /api (public share links first)
+    auth.js, documents.js, tasks.js, share.js, ai.js
+  controllers/                    HTTP only: read the request, call a service, set cookies and status codes
+    auth.controller.js, document.controller.js, task.controller.js, ai.controller.js (Gemini SSE streaming)
+  services/                       Rules and database work; no req/res; throw HttpError
+    auth.service.js               Sign-up, credentials, password reset, account deletion, export
+    document.service.js           Pages: tree moves, 409 version conflicts, history, restore, sharing, cascade delete
+    task.service.js               Sprint-board tasks
+    versions.js, seed.js, email.js
+  middleware/                     auth (JWT + session version), validate (zod, ids), loginLockout, rateLimits, security, errors
+  lib/httpError.js                HttpError with a status; errors.js turns it into JSON
+  models/                         User, Document, DocumentVersion, Task, LoginAttempt
+  tests/api.test.js               API tests against an in-memory MongoDB
+e2e/                              Browser journeys (Playwright)
 ```
+
+### Where to change things
+
+| You want to... | Change |
+| --- | --- |
+| Add an API endpoint | Route in `server/routes/`, handler in `controllers/`, logic in `services/` |
+| Validate a new field | `server/schemas.js` (zod), then the model in `server/models/` |
+| Change a rule (who can see what, limits, conflicts) | `server/services/` |
+| Change the Copilot prompt or model behaviour | `server/controllers/ai.controller.js` |
+| Change the AI cost limits | `server/middleware/rateLimits.js` and `AI_DAILY_LIMIT` |
+| Change what the editor saves or when | `src/hooks/useDocSync.ts` |
+| Change workspace data loading | `src/hooks/useWorkspace.ts` |
 
 ## Known limitations
 

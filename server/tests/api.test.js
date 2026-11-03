@@ -9,8 +9,8 @@ process.env.JWT_SECRET = "test-secret";
 process.env.AUTH_RATE_LIMIT = "1000";
 delete process.env.GEMINI_API_KEY;
 
-const { createApp } = await import("./app.js");
-const { setEmailTransport } = await import("./services/email.js");
+const { createApp } = await import("../app.js");
+const { setEmailTransport } = await import("../services/email.js");
 const outbox = [];
 setEmailTransport(async (m) => { outbox.push(m); return { sent: true }; });
 
@@ -158,8 +158,8 @@ test("deleting an account needs the password and removes all its data", async ()
   const bobId = (await call("/api/auth/me", { cookie: bob })).json.user.id;
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "wrong-pass" } })).status, 401);
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "correct-horse" } })).status, 200);
-  const { Document } = await import("./models/Document.js");
-  const { Task } = await import("./models/Task.js");
+  const { Document } = await import("../models/Document.js");
+  const { Task } = await import("../models/Task.js");
   assert.equal(await Document.countDocuments({ userId: bobId }), 0);
   assert.equal(await Task.countDocuments({ userId: bobId }), 0);
   assert.equal((await call("/api/documents", { cookie: bob })).status, 401, "a deleted account's cookie stops working everywhere");
@@ -191,7 +191,7 @@ test("repeated wrong passwords lock that email from that address, stored in the 
   const attempt = (password) => call("/api/auth/login", { method: "POST", body: { email: "locked@example.com", password } });
   for (let i = 0; i < 8; i++) assert.equal((await attempt("wrong-password")).status, 401);
   assert.equal((await attempt("correct-horse")).status, 429, "even the right password waits once locked");
-  const { LoginAttempt } = await import("./models/LoginAttempt.js");
+  const { LoginAttempt } = await import("../models/LoginAttempt.js");
   assert.equal((await LoginAttempt.findOne({ key: /^locked@example\.com\|/ }).lean()).count, 8);
 });
 
