@@ -17,6 +17,10 @@ export async function login(req, res) {
   signIn(res, user);
 }
 
+export async function demo(_req, res) {
+  signIn(res, await auth.createDemo(), 201);
+}
+
 export async function forgot(req, res) {
   await auth.requestPasswordReset(req.body.email);
   res.json({ message: "If an account uses that email, a reset link is on its way. It works for 30 minutes." });

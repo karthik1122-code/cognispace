@@ -146,7 +146,7 @@ export function Sidebar(p: SidebarProps) {
               <Avatar name={p.user?.name || 'You'} size={26} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-medium">{p.user?.name || 'You'}</span>
-                <span className="block truncate text-[11.5px] text-faint">{p.user?.email}</span>
+                <span className="block truncate text-[11.5px] text-faint">{p.user?.demo ? 'Demo workspace' : p.user?.email}</span>
               </span>
             </button>
           )}

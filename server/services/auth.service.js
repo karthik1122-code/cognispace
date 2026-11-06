@@ -10,7 +10,8 @@ import { seedUserStarterData } from "./seed.js";
 import { HttpError, badRequest, conflict, notFound, unauthorized } from "../lib/httpError.js";
 
 // Accounts: sign-up, sign-in, password reset, account deletion and export. No req/res in here.
-export const publicUser = (u) => ({ id: u._id.toString(), name: u.name, email: u.email });
+export const publicUser = (u) => ({ id: u._id.toString(), name: u.name, email: u.email, demo: Boolean(u.demo) });
+export const DEMO_TTL_MS = 24 * 60 * 60 * 1000;
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
 export async function register({ name, email, password }) {
@@ -18,6 +19,35 @@ export async function register({ name, email, password }) {
   const user = await User.create({ name, email, password: await bcrypt.hash(password, 12) });
   await seedUserStarterData(user._id.toString(), user.name);
   return user;
+}
+
+// "Try the demo": a fresh, private workspace per visitor with the starter pages and tasks, so no one sees anyone
+// else's edits. Its password is random and never shown, so no one can sign in to it later.
+export async function createDemo() {
+  await deleteOldDemos();
+  const user = await User.create({
+    name: "Demo visitor",
+    email: `demo-${crypto.randomBytes(6).toString("hex")}@demo.cognispace.app`,
+    password: await bcrypt.hash(crypto.randomBytes(24).toString("base64url"), 10),
+    demo: true,
+  });
+  await seedUserStarterData(user._id.toString(), "Demo visitor");
+  return user;
+}
+
+/** Deletes demo workspaces older than a day, with everything in them. */
+export async function deleteOldDemos(now = Date.now()) {
+  const old = await User.find({ demo: true, createdAt: { $lt: new Date(now - DEMO_TTL_MS) } }).select("_id").lean();
+  if (!old.length) return 0;
+  const ids = old.map((u) => u._id);
+  const userIds = ids.map(String);
+  await Promise.all([
+    DocumentVersion.deleteMany({ userId: { $in: userIds } }),
+    Document.deleteMany({ userId: { $in: userIds } }),
+    Task.deleteMany({ userId: { $in: userIds } }),
+    User.deleteMany({ _id: { $in: ids } }),
+  ]);
+  return ids.length;
 }
 
 /** Returns the user, or null for a wrong email or password (same result for both, so emails stay private). */

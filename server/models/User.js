@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     // Only a SHA-256 hash of the reset token is stored; the token itself exists only in the email.
     resetTokenHash: { type: String, default: null, index: true },
     resetTokenExpires: { type: Date, default: null },
+    // Made by "Try the demo": a private sample workspace that is deleted a day later.
+    demo: { type: Boolean, default: false, index: true },
   },
   {
     timestamps: true,

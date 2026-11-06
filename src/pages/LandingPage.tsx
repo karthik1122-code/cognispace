@@ -15,6 +15,8 @@ import { cn } from '../lib/cn';
 interface Props {
   onGetStarted: () => void;
   onLogin: () => void;
+  /** Opens a private sample workspace; resolves to an error message, or nothing on success. */
+  onTryDemo: () => Promise<string | void>;
 }
 
 const ROWS = [
@@ -96,7 +98,16 @@ function useDemoVideo() {
   return has;
 }
 
-export function LandingPage({ onGetStarted, onLogin }: Props) {
+export function LandingPage({ onGetStarted, onLogin, onTryDemo }: Props) {
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState('');
+  const tryDemo = async () => {
+    if (demoBusy) return;
+    setDemoBusy(true);
+    setDemoError('');
+    const problem = await onTryDemo();
+    if (problem) { setDemoError(problem); setDemoBusy(false); }
+  };
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState<number | null>(0);
   const hasVideo = useDemoVideo();
@@ -147,10 +158,11 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
             </motion.p>
             <motion.div variants={staggerChild} className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <button onClick={onGetStarted} className="btn-primary btn-shine !h-12 !rounded-full !px-7 !text-[15px]">Start building free <ArrowRight size={16} /></button>
-              <a href={REPO} target="_blank" rel="noreferrer" className="btn-outline !h-12 !rounded-full !px-6 !text-[15px]"><GitBranch size={15} /> Star on GitHub</a>
+              <button onClick={tryDemo} disabled={demoBusy} className="btn-outline !h-12 !rounded-full !px-6 !text-[15px]">{demoBusy ? 'Opening demo…' : 'Try the demo'}</button>
             </motion.div>
+            {demoError && <p role="alert" className="mt-4 text-[14px] text-danger">{demoError}</p>}
             <motion.ul variants={staggerChild} className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-faint">
-              {['Free during beta', 'No card needed', 'Export or delete anytime'].map((t) => (
+              {['Demo needs no sign-up', 'Free during beta', 'Export or delete anytime'].map((t) => (
                 <li key={t} className="inline-flex items-center gap-1.5"><Check size={13} className="text-ok" />{t}</li>
               ))}
             </motion.ul>
@@ -186,7 +198,7 @@ export function LandingPage({ onGetStarted, onLogin }: Props) {
         </section>
 
         {/* Feature story (sticky scroll) */}
-        <section className="border-b border-line"><FeatureScroll rows={ROWS} onTry={onGetStarted} /></section>
+        <section className="border-b border-line"><FeatureScroll rows={ROWS} onTry={tryDemo} /></section>
 
         {/* How it works */}
         <section id="how" className="scroll-mt-20 border-b border-line bg-fg/[0.02]">

@@ -10,6 +10,7 @@ import * as c from "../controllers/auth.controller.js";
 const router = Router();
 router.post("/auth/register", authLimiter, validate(registerSchema), c.register);
 router.post("/auth/login", authLimiter, validate(loginSchema), checkLockout, c.login);
+router.post("/auth/demo", authLimiter, c.demo);
 router.post("/auth/forgot", authLimiter, validate(forgotPasswordSchema), c.forgot);
 router.post("/auth/reset", authLimiter, validate(resetPasswordSchema), c.reset);
 router.post("/auth/logout", c.logout);
