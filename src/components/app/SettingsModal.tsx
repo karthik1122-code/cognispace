@@ -76,7 +76,7 @@ export function SettingsModal({ user, theme, onTheme, getHeaders, onClose, onAcc
             <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wider text-faint">Account</h3>
             <div className="flex items-center gap-3">
               <Avatar name={user?.name || 'You'} size={40} />
-              <div><div className="text-[14px] font-medium">{user?.name}</div><div className="text-[13px] text-muted">{user?.email}</div></div>
+              <div><div className="text-[14px] font-medium">{user?.name}</div><div className="text-[13px] text-muted">{user?.demo ? 'Demo workspace, deleted after 24 hours' : user?.email}</div></div>
             </div>
           </section>
 

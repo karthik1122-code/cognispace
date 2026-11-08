@@ -1,6 +1,10 @@
+import { HttpError } from "../lib/httpError.js";
+
 // Last stop for every error (Express 5 forwards rejected async handlers here). Always answers in JSON.
+// HttpError (thrown by services) carries its own status and message.
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(err, req, res, _next) {
+  if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, ...err.extra });
   if (err.type === "entity.too.large" || err.status === 413) return res.status(413).json({ error: "That request is too large." });
   if (err.type === "entity.parse.failed") return res.status(400).json({ error: "The request body is not valid JSON." });
   if (err.name === "CastError") return res.status(404).json({ error: "Not found." });

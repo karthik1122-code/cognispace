@@ -9,7 +9,7 @@
     "start": "node server/server.js",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test server/*.test.js",
+    "test": "node --test server/tests/*.test.js",
     "test:e2e": "node --test --test-concurrency=1 e2e/*.test.mjs"
   },
   "dependencies": {

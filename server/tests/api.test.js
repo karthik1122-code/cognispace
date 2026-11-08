@@ -9,8 +9,8 @@ process.env.JWT_SECRET = "test-secret";
 process.env.AUTH_RATE_LIMIT = "1000";
 delete process.env.GEMINI_API_KEY;
 
-const { createApp } = await import("./app.js");
-const { setEmailTransport } = await import("./services/email.js");
+const { createApp } = await import("../app.js");
+const { setEmailTransport } = await import("../services/email.js");
 const outbox = [];
 setEmailTransport(async (m) => { outbox.push(m); return { sent: true }; });
 
@@ -158,8 +158,8 @@ test("deleting an account needs the password and removes all its data", async ()
   const bobId = (await call("/api/auth/me", { cookie: bob })).json.user.id;
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "wrong-pass" } })).status, 401);
   assert.equal((await call("/api/auth/me", { method: "DELETE", cookie: bob, body: { password: "correct-horse" } })).status, 200);
-  const { Document } = await import("./models/Document.js");
-  const { Task } = await import("./models/Task.js");
+  const { Document } = await import("../models/Document.js");
+  const { Task } = await import("../models/Task.js");
   assert.equal(await Document.countDocuments({ userId: bobId }), 0);
   assert.equal(await Task.countDocuments({ userId: bobId }), 0);
   assert.equal((await call("/api/documents", { cookie: bob })).status, 401, "a deleted account's cookie stops working everywhere");
@@ -191,7 +191,7 @@ test("repeated wrong passwords lock that email from that address, stored in the 
   const attempt = (password) => call("/api/auth/login", { method: "POST", body: { email: "locked@example.com", password } });
   for (let i = 0; i < 8; i++) assert.equal((await attempt("wrong-password")).status, 401);
   assert.equal((await attempt("correct-horse")).status, 429, "even the right password waits once locked");
-  const { LoginAttempt } = await import("./models/LoginAttempt.js");
+  const { LoginAttempt } = await import("../models/LoginAttempt.js");
   assert.equal((await LoginAttempt.findOne({ key: /^locked@example\.com\|/ }).lean()).count, 8);
 });
 
@@ -208,4 +208,28 @@ test("share links: the owner turns sharing on and off, and the public view is re
   assert.equal((await call(`/api/documents/${doc.id}/share`, { method: "DELETE", cookie: owner })).status, 200);
   assert.equal((await call(`/api/share/${shareId}`)).status, 404, "turning sharing off breaks the old link");
   assert.equal((await call("/api/share/not-a-real-share-id-12345")).status, 404);
+});
+
+test("Try the demo opens a private sample workspace, and old demos are deleted after a day", async () => {
+  const a = await call("/api/auth/demo", { method: "POST" });
+  assert.equal(a.status, 201);
+  assert.equal(a.json.user.demo, true);
+  assert.ok(a.cookie.startsWith("token="));
+  const docs = await call("/api/documents", { cookie: a.cookie });
+  assert.equal(docs.status, 200);
+  assert.ok((Array.isArray(docs.json) ? docs.json : docs.json.documents || []).length >= 1, "the demo has starter pages");
+
+  // A second visitor gets a separate workspace.
+  const b = await call("/api/auth/demo", { method: "POST" });
+  assert.notEqual(b.json.user.id, a.json.user.id);
+
+  // Age the first demo past a day; the next demo request deletes it with its pages.
+  const { User } = await import("../models/User.js");
+  const { Document } = await import("../models/Document.js");
+  await User.collection.updateOne({ _id: new mongoose.Types.ObjectId(a.json.user.id) }, { $set: { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) } }); // createdAt is immutable in Mongoose
+  await call("/api/auth/demo", { method: "POST" });
+  assert.equal(await User.countDocuments({ _id: a.json.user.id }), 0);
+  assert.equal(await Document.countDocuments({ userId: a.json.user.id }), 0);
+  assert.equal((await call("/api/auth/me", { cookie: a.cookie })).status, 401);
+  assert.equal((await call("/api/auth/me", { cookie: b.cookie })).status, 200);
 });

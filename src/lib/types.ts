@@ -35,6 +35,8 @@ export interface AuthUser {
   id?: string;
   name: string;
   email: string;
+  /** A "Try the demo" workspace, deleted a day after it was made. */
+  demo?: boolean;
 }
 
 /** Server documents carry both `_id` and `id`; the UI only ever uses `id`. */

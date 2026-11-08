@@ -4,15 +4,10 @@ import fs from "fs";
 import path from "path";
 import { DIST_PATH } from "./config.js";
 import { isDatabaseReady } from "./db.js";
-import { requireAuth } from "./middleware/auth.js";
 import { corsPolicy, securityHeaders } from "./middleware/security.js";
-import { apiLimiter, aiBurstLimiter, aiDailyLimiter } from "./middleware/rateLimits.js";
+import { apiLimiter } from "./middleware/rateLimits.js";
 import { errorHandler } from "./middleware/errors.js";
-import authRoutes from "./routes/auth.js";
-import documentRoutes from "./routes/documents.js";
-import taskRoutes from "./routes/tasks.js";
-import shareRoutes from "./routes/share.js";
-import { streamAiTransform } from "./controllers/aiController.js";
+import api from "./routes/index.js";
 
 /** Builds the Express app without connecting to a database or listening, so tests can use it directly. */
 export function createApp({ serveFrontend = true } = {}) {
@@ -26,12 +21,7 @@ export function createApp({ serveFrontend = true } = {}) {
   app.use(corsPolicy);
   app.use("/api/", apiLimiter);
 
-  const api = express.Router();
-  api.use(shareRoutes);
-  api.use(authRoutes);
-  api.use(documentRoutes);
-  api.use(taskRoutes);
-  api.post("/ai/transform", requireAuth, aiBurstLimiter, aiDailyLimiter, streamAiTransform);
+  // request -> security, JSON, cookies, CORS, rate limit -> routes -> controllers -> services -> models
   app.use("/api", api);
   app.use("/api", (_req, res) => res.status(404).json({ error: "Not found." }));
 

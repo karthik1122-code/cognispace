@@ -63,6 +63,19 @@ function MainApp() {
     return () => { cancelled = true; };
   }, []);
 
+  // "Try the demo": a private sample workspace, signed in with one click. Returns an error message on failure.
+  const tryDemo = useCallback(async (): Promise<string | void> => {
+    try {
+      const res = await fetch(apiUrl('/api/auth/demo'), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.user) return data?.error || 'Could not open the demo. Please try again.';
+      setUser(data.user);
+      setView('app');
+    } catch {
+      return 'Can’t reach the server. If it was idle, it may be waking up — wait a few seconds and try again.';
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try { await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' }); } catch { /* cookie expires on its own */ }
     clearSession();
@@ -97,9 +110,15 @@ function MainApp() {
   return (
     <Suspense fallback={loading}>
     <AnimatePresence mode="wait" initial={false}>
-      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => { setAuthMode('signup'); setView('auth'); }} onLogin={() => { setAuthMode('login'); setView('auth'); }} /></Fade>}
+      {view === 'landing' && <Fade k="landing"><LandingPage onGetStarted={() => { setAuthMode('signup'); setView('auth'); }} onLogin={() => { setAuthMode('login'); setView('auth'); }} onTryDemo={tryDemo} /></Fade>}
       {view === 'auth' && <Fade k="auth"><AuthPage initialMode={authMode} onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
       {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
+      {view === 'app' && user?.demo && (
+        <div role="status" className="fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full border border-line-strong bg-elevated px-4 py-2 text-[13px] text-muted shadow-pop">
+          <span>Demo workspace: edit anything, it's deleted after 24 hours.</span>
+          <button onClick={() => { void logout().then(() => { setAuthMode('signup'); setView('auth'); }); }} className="font-semibold text-fg underline underline-offset-2">Create your own</button>
+        </div>
+      )}
     </AnimatePresence>
     </Suspense>
   );
