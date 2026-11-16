@@ -1,7 +1,7 @@
 // Copilot model handling, with a fake Gemini client. Run with: npm test
 import test from "node:test";
 import assert from "node:assert/strict";
-import { streamGemini, classifyAiError, setAiClientFactory, aiStatus, resetAiStatusCache, aiMessage } from "../services/ai.service.js";
+import { streamGemini, classifyAiError, setAiClientFactory, aiStatus, resetAiStatusCache, aiMessage, resetModelHealth } from "../services/ai.service.js";
 
 const settings = (over = {}) => ({ apiKey: "test-key-123456", models: ["main-model", "lite-model"], firstTokenMs: 300, idleMs: 300, budgetMs: 3000, ...over });
 const quiet = { warn: () => {} };
@@ -11,6 +11,7 @@ async function* chunks(...texts) { for (const text of texts) yield { text }; }
 
 // behaviour(model, config, callNumber) returns a stream, throws, or hangs.
 function fakeGemini(behaviour) {
+  resetModelHealth();
   const calls = [];
   setAiClientFactory(async () => ({
     models: {
@@ -137,4 +138,24 @@ test("the status check reports the reason and is cached", async () => {
   assert.equal(s2.cached, true);
   assert.equal(calls.length, 1);
   resetAiStatusCache();
+});
+
+test("after the main model times out, the next request skips it and answers at once", async () => {
+  const calls = fakeGemini((model) => (model === "main-model" ? new Promise(() => {}) : chunks("ok")));
+  await run();
+  const t0 = Date.now();
+  const { r } = await run();
+  assert.equal(r.model, "lite-model");
+  assert.ok(Date.now() - t0 < 200, "second request should not wait on the slow model");
+  assert.deepEqual(calls.map((c) => c.model), ["main-model", "lite-model", "lite-model"]);
+});
+
+test("if every model failed recently, it still tries them all", async () => {
+  let fail = true;
+  const calls = fakeGemini((model) => (fail ? (() => { throw apiError(429, "quota"); })() : chunks(model)));
+  await assert.rejects(run(), (e) => e.kind === "quota");
+  fail = false;
+  const { r } = await run();
+  assert.equal(r.model, "main-model");
+  assert.equal(calls.length, 3);
 });

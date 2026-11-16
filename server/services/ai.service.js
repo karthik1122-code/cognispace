@@ -56,6 +56,13 @@ export function classifyAiError(err) {
 // These mean the same request will fail on any model, so stop instead of trying the fallback.
 const FATAL = new Set(["not_configured", "key_invalid", "blocked"]);
 
+// A model that just timed out or ran out of quota is skipped for a while, so the next visitor
+// goes straight to the fallback instead of waiting on it again.
+const SKIP_MS = 10 * 60 * 1000;
+const skipUntil = new Map();
+const SKIPPABLE = new Set(["timeout", "quota", "model_not_found", "key_denied"]);
+export function resetModelHealth() { skipUntil.clear(); }
+
 class TimedOut extends Error {
   constructor(label) { super(`${label} timed out`); this.kind = "timeout"; }
 }
@@ -80,7 +87,11 @@ export async function streamGemini({ contents, systemInstruction, onText, signal
   const started = Date.now();
   let lastKind = "timeout"; // if the time budget runs out before any answer
 
-  for (const model of settings.models) {
+  const now = Date.now();
+  const healthy = settings.models.filter((m) => !(skipUntil.get(m) > now));
+  const order = healthy.length ? healthy : settings.models; // all failing recently: try them all again
+
+  for (const model of order) {
     let useThinking = true;
     for (let attempt = 1; attempt <= 2; attempt++) {
       const left = settings.budgetMs - (Date.now() - started);
@@ -112,6 +123,7 @@ export async function streamGemini({ contents, systemInstruction, onText, signal
           if (text) { sentText = true; onText(text); }
         }
         if (!sentText) { const e = new Error("empty answer"); e.kind = "blocked"; throw e; }
+        skipUntil.delete(model);
         return { model, kind: "ok", ms: Date.now() - started };
       } catch (err) {
         const kind = classifyAiError(err);
@@ -121,6 +133,7 @@ export async function streamGemini({ contents, systemInstruction, onText, signal
         if (sentText) { const e = new Error("stream broke"); e.kind = kind; e.partial = true; throw e; }
         if (kind === "thinking_unsupported") { useThinking = false; attempt--; continue; }
         if (FATAL.has(kind)) { const e = new Error(kind); e.kind = kind; throw e; }
+        if (SKIPPABLE.has(kind) && !signal?.aborted) skipUntil.set(model, Date.now() + SKIP_MS);
         if (kind !== "overloaded") break; // quota, missing model, timeout, denied: go straight to the fallback model
         await new Promise((r) => setTimeout(r, 600));
       } finally {
