@@ -18,9 +18,19 @@ import type { AuthUser } from './lib/types';
 export type { AuthUser };
 type AppView = 'landing' | 'auth' | 'app';
 
+// A plain "has signed in on this browser" flag (no token). First-time visitors see the landing page at once
+// instead of waiting for a sleeping server to answer the session check.
+const SIGNED_IN_HINT = 'cs-signed-in';
+function hasSignedInHint() {
+  try { return localStorage.getItem(SIGNED_IN_HINT) === '1'; } catch { return false; }
+}
+function markSignedIn() {
+  try { localStorage.setItem(SIGNED_IN_HINT, '1'); } catch { /* storage unavailable: the session check still runs */ }
+}
+
 // Sessions live only in the httpOnly cookie. Older builds kept a token in localStorage; clear it.
 function clearSession() {
-  try { localStorage.removeItem('cognispace_user'); localStorage.removeItem('auth_token'); } catch { /* ignore */ }
+  try { localStorage.removeItem('cognispace_user'); localStorage.removeItem('auth_token'); localStorage.removeItem(SIGNED_IN_HINT); } catch { /* ignore */ }
 }
 
 function Fade({ k, children }: { k: string; children: ReactNode }) {
@@ -36,7 +46,9 @@ function MainApp() {
   const [resetToken, setResetToken] = useState<string | null>(RESET_TOKEN);
   const [view, setView] = useState<AppView>('landing');
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(hasSignedInHint);
+
+  useEffect(() => { if (user) markSignedIn(); }, [user]);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 
   // Rehydrate the session from the cookie / stored token.
@@ -49,7 +61,8 @@ function MainApp() {
           const data = await res.json();
           if (!cancelled && data?.user) {
             setUser(data.user);
-            setView('app');
+            // Only leave the landing page; never pull someone off the sign-in form mid-typing.
+            setView((v) => (v === 'landing' ? 'app' : v));
           }
         } else {
           clearSession();
