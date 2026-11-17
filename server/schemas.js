@@ -58,3 +58,26 @@ const taskFields = {
 
 export const createTaskSchema = z.object({ ...taskFields, documentId: objectId.nullable() }).partial();
 export const updateTaskSchema = z.object(taskFields).partial();
+
+// Notes -> tasks: the page as it is on screen (optional; the saved page is used otherwise).
+export const suggestTasksSchema = z.object({ content: z.string().max(900_000, "This page is too large.").optional() });
+
+// Notes -> tasks: the items the user ticked in the review dialog.
+export const createPageTasksSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1, "Each task needs a title.").max(200),
+        assignee: z.string().trim().max(60).default(""),
+        due: z.string().trim().max(40).default(""),
+        priority: z.enum(PRIORITY).default("Medium"),
+      })
+    )
+    .min(1, "Pick at least one task.")
+    .max(20, "You can add up to 20 tasks at once."),
+});
+
+// Ask your workspace.
+export const askSchema = z.object({
+  question: z.string().trim().min(2, "Type a question.").max(500, "Keep the question under 500 characters."),
+});

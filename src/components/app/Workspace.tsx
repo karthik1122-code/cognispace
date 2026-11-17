@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, Check, Download, Link2, FilePlus2, History, Home, KanbanSquare, Menu, Moon, MoreHorizontal, PanelLeft, RefreshCw, Search, Settings, Sparkles, Star, Sun, Trash2, WifiOff,
+  ListChecks,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { PageView } from './PageView';
@@ -9,11 +10,12 @@ import { TasksView } from './TasksView';
 import { HomeView } from './HomeView';
 import { SettingsModal } from './SettingsModal';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
-import { CopilotPanel } from './CopilotPanel';
+import { CopilotPanel, type CopilotScope } from './CopilotPanel';
 import { VersionHistory } from './VersionHistory';
 import { ToastProvider } from './Toasts';
 import { useToast } from './toastContext';
 import { ShareDialog } from './ShareDialog';
+import { PageTasksDialog } from './PageTasksDialog';
 import { Popover, MenuItem } from '../ui/Popover';
 import { ServerWakeBanner } from '../ui/ServerWakeBanner';
 import { useTheme } from '../../hooks/useTheme';
@@ -76,11 +78,14 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [seedPrompt, setSeedPrompt] = useState('');
+  const [copilotScope, setCopilotScope] = useState<CopilotScope>('page');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [tasksFromPageOpen, setTasksFromPageOpen] = useState(false);
   const [nonce, setNonce] = useState(0);
 
   const { active, docs } = ws;
+  const linkedTaskCount = useMemo(() => (active ? ws.tasks.filter((t) => t.documentId === active.id).length : 0), [ws.tasks, active]);
   const editorKey = `${active?.id ?? 'none'}-${nonce}`;
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -115,15 +120,21 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
     toast('Exported as HTML');
   }, [active, toast]);
 
-  const openCopilot = useCallback((prompt = '') => {
+  const onPage = view === 'page' && Boolean(active);
+  const openCopilot = useCallback((prompt = '', scope?: CopilotScope) => {
     if (prompt) setSeedPrompt(prompt);
+    // Away from a page, Copilot answers about the whole workspace.
+    setCopilotScope(scope ?? (onPage ? 'page' : 'workspace'));
     setCopilotOpen(true);
-  }, []);
+  }, [onPage]);
+  // Away from a page there is nothing to edit, so Copilot always answers about the whole workspace.
+  const scope: CopilotScope = onPage ? copilotScope : 'workspace';
 
   const runAi = useCallback((prompt: string) => {
     onboarding.mark('copilot');
-    void ai.run(prompt, active ? plainText(active.content) : '', active?.title ?? '');
-  }, [ai, active, onboarding]);
+    if (scope === 'workspace' || !active) void ai.ask(prompt);
+    else void ai.run(prompt, plainText(active.content), active.title);
+  }, [ai, active, onboarding, scope]);
 
   const insertAi = useCallback(() => {
     if (!active || !ai.output) return;
@@ -159,10 +170,12 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
     { id: 'new', label: 'New page', hint: 'Create a blank page', icon: <FilePlus2 size={14} />, keywords: 'create add', run: () => void newDoc() },
     ...TEMPLATES.slice(1).map<PaletteAction>((t) => ({ id: `tpl-${t.label}`, label: `New ${t.label.toLowerCase()}`, hint: 'From template', icon: <span>{t.icon}</span>, keywords: 'template create', run: () => void newDoc(t) })),
     { id: 'ai', label: 'Ask Copilot', hint: 'Write or edit with AI', icon: <Sparkles size={14} />, shortcut: '⌘J', keywords: 'ai gemini write', run: () => openCopilot() },
+    { id: 'ask', label: 'Ask your workspace', hint: 'Answers from all your pages, with sources', icon: <Sparkles size={14} />, keywords: 'search question find decide ai', run: () => openCopilot('', 'workspace') },
     { id: 'home', label: 'Go to Home', icon: <Home size={14} />, run: () => setView('home') },
     { id: 'settings', label: 'Open settings', hint: 'Account, theme, export, delete', icon: <Settings size={14} />, run: () => setSettingsOpen(true) },
     { id: 'board', label: 'Open sprint board', icon: <KanbanSquare size={14} />, keywords: 'tasks kanban', run: () => setView('tasks') },
     ...(active ? [
+      { id: 'tasks-from-page', label: 'Create tasks from this page', hint: 'Turn action items into board tasks', icon: <ListChecks size={14} />, keywords: 'action items todo extract', run: () => setTasksFromPageOpen(true) },
       { id: 'history', label: 'Version history', hint: 'Browse and restore earlier versions', icon: <History size={14} />, run: () => setHistoryOpen(true) },
       { id: 'export', label: 'Export page as HTML', icon: <Download size={14} />, run: exportDoc },
       { id: 'star', label: active.isStarred ? 'Remove from favorites' : 'Add to favorites', icon: <Star size={14} />, run: () => toggleStar(active.id) },
@@ -236,11 +249,16 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
 
             <button onClick={() => setPaletteOpen(true)} aria-label="Search" className="btn-ghost h-8 w-8 !px-0 md:hidden"><Search size={15} /></button>
             {view === 'page' && active && (
+              <button onClick={() => setTasksFromPageOpen(true)} title="Turn this page's action items into board tasks" className="btn-outline h-8 gap-1.5">
+                <ListChecks size={14} /> <span className="hidden md:inline">Create tasks</span>
+              </button>
+            )}
+            {view === 'page' && active && (
               <button onClick={() => setHistoryOpen(true)} aria-label="Version history" title="Version history" className="btn-ghost h-8 w-8 !px-0"><History size={15} /></button>
             )}
             <button onClick={toggleTheme} aria-label="Toggle theme" className="btn-ghost h-8 w-8 !px-0">{theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}</button>
             <button
-              onClick={() => setCopilotOpen((o) => !o)}
+              onClick={() => (copilotOpen ? setCopilotOpen(false) : openCopilot())}
               aria-pressed={copilotOpen}
               className={cn('btn h-8 gap-1.5', copilotOpen ? 'bg-accent/15 text-accent' : 'btn-outline')}
             >
@@ -298,6 +316,8 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
                 onCreate={(p) => { onboarding.mark('task'); void ws.createTask(p, user?.name?.split(' ')[0] || 'You'); }}
                 onUpdate={(id, p) => void ws.updateTask(id, p)}
                 onDelete={(id) => void ws.deleteTask(id)}
+                docs={docs}
+                onOpenDoc={openDoc}
               />
             ) : ws.loading ? (
               <div className="mx-auto max-w-[740px] space-y-4 px-10 pt-24" aria-label="Loading">
@@ -311,6 +331,9 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
                 onPatch={(patch) => ws.patchDoc(active.id, patch)}
                 onAskAI={(p) => openCopilot(p)}
                 onSlashUsed={() => onboarding.mark('slash')}
+                linkedTaskCount={linkedTaskCount}
+                onOpenTasks={() => setView('tasks')}
+                onCreateTasks={() => setTasksFromPageOpen(true)}
               />
             ) : (
               <EmptyState
@@ -336,6 +359,11 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
             onStop={ai.stop}
             onInsert={insertAi}
             onCopy={() => void copyAi()}
+            scope={scope}
+            onScope={(sc) => { setCopilotScope(sc); ai.clear(); }}
+            canUsePage={onPage}
+            sources={ai.sources}
+            onOpenSource={openDoc}
           />
         </div>
       </div>
@@ -356,6 +384,19 @@ function WorkspaceInner({ user, onLogout, onBackToLanding }: Props) {
 
       {shareOpen && active && (
         <ShareDialog docId={active.id} title={active.title} shareId={active.shareId} onChange={(shareId) => ws.setDocMeta(active.id, { shareId })} onClose={() => setShareOpen(false)} />
+      )}
+      {tasksFromPageOpen && active && (
+        <PageTasksDialog
+          key={active.id}
+          title={active.title}
+          load={() => ws.suggestTasks(active.id, active.content)}
+          create={(items) => ws.createTasksFromPage(active.id, items)}
+          onClose={() => setTasksFromPageOpen(false)}
+          onDone={(created) => {
+            setTasksFromPageOpen(false);
+            toast(`Added ${created.length} ${created.length === 1 ? 'task' : 'tasks'} to the board`, { actionLabel: 'Open board', onAction: () => setView('tasks'), ms: 7000 });
+          }}
+        />
       )}
       {historyOpen && active && (
         <VersionHistory

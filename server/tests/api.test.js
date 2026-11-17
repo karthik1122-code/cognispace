@@ -81,7 +81,7 @@ test("login, session and the same error for wrong email or password", async () =
 });
 
 test("new accounts get starter pages and tasks", async () => {
-  assert.equal((await call("/api/documents", { cookie: alice })).json.length, 2);
+  assert.equal((await call("/api/documents", { cookie: alice })).json.length, 3);
   assert.equal((await call("/api/tasks", { cookie: alice })).json.length, 4);
 });
 
@@ -232,4 +232,86 @@ test("Try the demo opens a private sample workspace, and old demos are deleted a
   assert.equal(await Document.countDocuments({ userId: a.json.user.id }), 0);
   assert.equal((await call("/api/auth/me", { cookie: a.cookie })).status, 401);
   assert.equal((await call("/api/auth/me", { cookie: b.cookie })).status, 200);
+});
+
+// Reads an SSE reply into its JSON events.
+async function sse(path, body, cookie) {
+  const res = await fetch(base + path, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
+  const text = await res.text();
+  const events = text.split("\n").filter((l) => l.startsWith("data: ") && l !== "data: [DONE]").map((l) => JSON.parse(l.slice(6)));
+  return { status: res.status, events, done: text.includes("data: [DONE]") };
+}
+
+// Bob's account is deleted by an earlier test, so these use their own second user.
+let carol;
+test("notes -> tasks: suggests the page's open to-dos even without AI, and only for the owner", async () => {
+  carol = (await register("carol@example.com")).cookie;
+  const page = (await call("/api/documents", { method: "POST", cookie: alice, body: {
+    title: "Standup",
+    content: '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Fix the login bug</p></li><li data-type="taskItem" data-checked="true"><p>Ship v1</p></li></ul>',
+  } })).json;
+  const r = await call(`/api/documents/${page.id}/suggest-tasks`, { method: "POST", cookie: alice });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.suggestions.map((s) => s.title), ["Fix the login bug"]);
+  assert.equal(r.json.ai.ok, false, "no Gemini key in tests");
+  assert.equal(r.json.ai.kind, "not_configured");
+  assert.equal((await call(`/api/documents/${page.id}/suggest-tasks`, { method: "POST", cookie: carol })).status, 404);
+  assert.equal((await call(`/api/documents/${page.id}/suggest-tasks`, { method: "POST" })).status, 401);
+});
+
+test("notes -> tasks: picked items become Backlog tasks linked to the page, then show as already added", async () => {
+  const page = (await call("/api/documents", { method: "POST", cookie: alice, body: {
+    title: "Retro",
+    content: '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Write the release notes</p></li></ul>',
+  } })).json;
+  const made = await call(`/api/documents/${page.id}/tasks`, { method: "POST", cookie: alice, body: {
+    items: [{ title: "Write the release notes", assignee: "Ana", due: "Friday", priority: "High" }, { title: "Book the venue" }],
+  } });
+  assert.equal(made.status, 201);
+  assert.equal(made.json.length, 2);
+  assert.deepEqual(made.json.map((t) => [t.name, t.status, String(t.documentId)]), [
+    ["Write the release notes", "Backlog", page.id],
+    ["Book the venue", "Backlog", page.id],
+  ]);
+  assert.equal(made.json[0].assignee, "Ana");
+  assert.equal(made.json[1].dueDate, "No date");
+
+  const again = await call(`/api/documents/${page.id}/suggest-tasks`, { method: "POST", cookie: alice });
+  assert.equal(again.json.suggestions[0].exists, true);
+
+  // Unsaved text on screen is used when sent along.
+  const live = await call(`/api/documents/${page.id}/suggest-tasks`, { method: "POST", cookie: alice, body: {
+    content: '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Order the team t-shirts</p></li></ul>',
+  } });
+  assert.deepEqual(live.json.suggestions.map((s) => s.title), ["Order the team t-shirts"]);
+
+  // Someone else's page, empty or oversized lists, and bad fields are refused.
+  assert.equal((await call(`/api/documents/${page.id}/tasks`, { method: "POST", cookie: carol, body: { items: [{ title: "x" }] } })).status, 404);
+  assert.equal((await call(`/api/documents/${page.id}/tasks`, { method: "POST", cookie: alice, body: { items: [] } })).status, 400);
+  const many = Array.from({ length: 21 }, (_, i) => ({ title: `Task ${i}` }));
+  assert.equal((await call(`/api/documents/${page.id}/tasks`, { method: "POST", cookie: alice, body: { items: many } })).status, 400);
+  assert.equal((await call(`/api/documents/${page.id}/tasks`, { method: "POST", cookie: alice, body: { items: [{ title: "x", priority: "Huge" }] } })).status, 400);
+});
+
+test("ask your workspace: searches only your own pages and shows sources even without AI", async () => {
+  await call("/api/documents", { method: "POST", cookie: carol, body: { title: "Carol's secret", content: "<p>The launch password is swordfish.</p>" } });
+  await call("/api/documents", { method: "POST", cookie: alice, body: { title: "Launch plan", content: "<h2>Dates</h2><p>The beta launch is on 28 November.</p>" } });
+
+  const r = await sse("/api/ai/ask", { question: "When is the beta launch?" }, alice);
+  assert.equal(r.status, 200);
+  assert.equal(r.done, true);
+  const sources = r.events.find((e) => e.sources).sources;
+  assert.ok(sources.length >= 1);
+  assert.ok(sources.every((s) => s.title !== "Carol's secret"), "never another user's page");
+  assert.equal(sources[0].title, "Launch plan");
+  const text = r.events.filter((e) => e.text).map((e) => e.text).join("");
+  assert.match(text, /not set up/);
+  assert.match(text, /28 November\. \[1\]/);
+
+  const none = await sse("/api/ai/ask", { question: "kubernetes budget" }, alice);
+  assert.deepEqual(none.events.find((e) => e.sources).sources, []);
+  assert.match(none.events.map((e) => e.text || "").join(""), /couldn't find anything/);
+
+  assert.equal((await call("/api/ai/ask", { method: "POST", cookie: alice, body: { question: "" } })).status, 400);
+  assert.equal((await call("/api/ai/ask", { method: "POST", body: { question: "hello there" } })).status, 401);
 });

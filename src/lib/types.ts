@@ -29,6 +29,33 @@ export interface Task {
   assignee: string;
   dueDate: string;
   progress: number;
+  /** The page this task was created from, if any. */
+  documentId?: string | null;
+}
+
+/** An action item found on a page, waiting for the user to accept it. */
+export interface TaskSuggestion {
+  title: string;
+  assignee: string;
+  due: string;
+  priority: Priority;
+  source: 'todo' | 'ai';
+  /** Already on the board from this page. */
+  exists: boolean;
+}
+
+export interface SuggestResult {
+  suggestions: TaskSuggestion[];
+  ai: { ok: boolean; kind?: string; message?: string };
+}
+
+/** A passage used to answer an "Ask your workspace" question. */
+export interface AskSource {
+  n: number;
+  documentId: string;
+  title: string;
+  heading: string;
+  snippet: string;
 }
 
 export interface AuthUser {
@@ -46,7 +73,7 @@ export function normalizeDoc(raw: Record<string, unknown>): Doc {
 }
 export function normalizeTask(raw: Record<string, unknown>): Task {
   const t = raw as unknown as Task & { _id?: string };
-  return { ...t, id: String(t.id ?? t._id) };
+  return { ...t, id: String(t.id ?? t._id), documentId: t.documentId ? String(t.documentId) : null };
 }
 
 export function plainText(html: string): string {

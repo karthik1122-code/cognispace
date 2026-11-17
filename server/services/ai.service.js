@@ -146,6 +146,56 @@ export async function streamGemini({ contents, systemInstruction, onText, signal
   throw e;
 }
 
+/**
+ * Asks Gemini for JSON that matches `schema`, with the same timeouts, skip list and fallback
+ * model as streamGemini. Returns { data, model } or throws an Error with .kind set.
+ */
+export async function generateJson({ contents, systemInstruction, schema, settings = aiSettings(), log = console, timeoutMs = 20000 }) {
+  if (!settings.apiKey) { const e = new Error("not configured"); e.kind = "not_configured"; throw e; }
+  const ai = await clientFactory(settings.apiKey);
+  const started = Date.now();
+  let lastKind = "timeout";
+  const now = Date.now();
+  const healthy = settings.models.filter((m) => !(skipUntil.get(m) > now));
+  const order = healthy.length ? healthy : settings.models;
+
+  for (const model of order) {
+    let useThinking = true;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const left = settings.budgetMs - (Date.now() - started);
+      if (left < 500) break;
+      const ac = new AbortController();
+      try {
+        const config = {
+          systemInstruction,
+          temperature: 0.1,
+          responseMimeType: "application/json",
+          responseSchema: schema,
+          abortSignal: ac.signal,
+          ...(useThinking ? { thinkingConfig: { thinkingLevel: "MINIMAL" } } : {}),
+        };
+        const res = await withTimeout(ai.models.generateContent({ model, contents, config }), Math.min(timeoutMs, left), "Gemini JSON", () => ac.abort());
+        let data;
+        try { data = JSON.parse(res?.text ?? ""); } catch { const e = new Error("not valid JSON"); e.kind = "unknown"; throw e; }
+        skipUntil.delete(model);
+        return { data, model };
+      } catch (err) {
+        const kind = classifyAiError(err);
+        lastKind = kind === "thinking_unsupported" ? lastKind : kind;
+        log.warn?.(`[AI] ${model} JSON attempt ${attempt} failed: ${kind} ${String(err?.message || "").slice(0, 160)}`);
+        if (kind === "thinking_unsupported") { useThinking = false; attempt--; continue; }
+        if (FATAL.has(kind)) { const e = new Error(kind); e.kind = kind; throw e; }
+        if (SKIPPABLE.has(kind)) skipUntil.set(model, Date.now() + SKIP_MS);
+        if (kind !== "overloaded") break;
+        await new Promise((r) => setTimeout(r, 600));
+      }
+    }
+  }
+  const e = new Error(lastKind);
+  e.kind = lastKind;
+  throw e;
+}
+
 // One tiny request, cached, so anyone can see whether the Copilot works and why not, without logs.
 let statusCache = { at: 0, value: null };
 export async function aiStatus({ settings = aiSettings(), now = Date.now(), cacheMs = 120000 } = {}) {

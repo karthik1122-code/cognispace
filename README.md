@@ -2,7 +2,7 @@
 
 # CogniSpace
 
-**A fast, keyboard-first workspace for notes, docs and sprints — with an AI Copilot that edits the page you are on.**
+**Your notes, turned into tracked tasks and answers.** A fast workspace with a block editor, a sprint board and an AI Copilot that finds the action items in your notes and answers questions across every page, with sources.
 
 [Live demo](https://cognispace-sigma.vercel.app) · [API health](https://cognispace-h5c9.onrender.com/health)
 
@@ -10,11 +10,16 @@
 
 > The API runs on a free Render instance and sleeps when idle. The first request can take up to ~30 seconds; the app shows a "Waking up the server" banner while it starts.
 
-## Who it is for
+## The problem
 
-Students and small teams who keep notes in one app, tasks in another and paste text into a chatbot in a third tab. CogniSpace keeps pages, a sprint board and an AI Copilot in one place, and the Copilot works on the page you are already on, so nothing needs copying back and forth.
+Teams decide things in their notes, then lose them. A meeting ends with "Priya will redesign onboarding by Friday", but that line never reaches the task board, and a week later nobody can find what was agreed or where.
 
-The core promise is trust: your writing is never lost or silently overwritten, and AI text never lands on the page without your review.
+Notes apps hold the words, task boards hold the work, and a chatbot in a third tab knows neither. CogniSpace connects them:
+
+1. **Notes → tasks.** Copilot reads a page and finds the action items, including who and by when. You tick the ones you want and they land on the sprint board, each linked back to the page it came from.
+2. **Ask your workspace.** Ask "When is the beta launch?" and get an answer drawn from all your pages, with numbered sources you can click. If nothing in your notes answers it, it says so instead of guessing.
+
+It is built for students and small teams, and it is built to be trusted: your writing is never lost or silently overwritten, and AI text never lands on a page without your review.
 
 ![Landing page](docs/landing.png)
 
@@ -26,7 +31,9 @@ The core promise is trust: your writing is never lost or silently overwritten, a
 | --- | --- |
 | **Home** | Greeting, workspace stats, recent pages, in-flight tasks, first-run checklist |
 | **Editor** | TipTap block editor: headings, to-dos, toggles, quotes, code, dividers. `/` menu with keyboard navigation and filtering. Selection toolbar |
-| **Copilot** | Gemini streaming over SSE. Improve / summarize a selection, or ask about the open page. Review, insert, undo. Stop button |
+| **Notes → tasks** | "Create tasks" on any page finds its action items: open to-dos (always, no AI needed, with the owner and deadline read from the line) plus items Gemini finds in the prose. Review and edit them, then add them to the Backlog. Cards link back to the page; the page shows how many of its tasks are on the board; items already added are marked |
+| **Ask your workspace** | Questions across every page. BM25 search over page passages picks the sources, then Gemini answers only from them with `[1]` citations that open the page. No match means no AI call and an honest "I couldn't find that". Without AI it still shows the best matching lines |
+| **Copilot** | Gemini streaming over SSE. Improve / summarize a selection, or ask about the open page. Review, insert, undo. Stop button. Fails fast with a clear reason and falls back to a lighter model; `GET /api/ai/status` shows whether it works |
 | **Sprint board** | Drag-and-drop Kanban + table view, inline editing, sprint progress. Every card also has a status menu, so tasks can be moved with a keyboard or on a phone |
 | **Reliability** | Autosave only reports *Saved* after the server confirms. Offline retries with backoff. Optimistic concurrency (version check) with a "load theirs / keep mine" flow |
 | **History** | Automatic snapshots (at most one per 2 min, 50 per page). One-click restore that keeps the overwritten text in history |
@@ -52,6 +59,8 @@ React 19 + Vite + Tailwind  ──HTTPS──▶  Express 5 API  ──▶  Mong
 * **Documents** carry a `version`. `PATCH` accepts `baseVersion`; a mismatch returns `409` with the current document instead of overwriting.
 * **Version history** is a separate `DocumentVersion` collection, trimmed to the 50 newest per page.
 * **AI** output is sanitized with an allowlist sanitizer before it is rendered or inserted.
+* **Ask your workspace** splits each page into passages under their headings, ranks them with BM25 (title and heading count as part of the passage, at most two passages per page), and only calls Gemini when the best passage covers at least half of the question's words. Sources are sent first over SSE, then the answer.
+* **Notes → tasks** asks Gemini for JSON that matches a schema (title, assignee, due, priority) and merges it with the page's unchecked to-dos, dropping near-duplicates. Creating tasks checks that the page is yours; each task stores the page id.
 * **Validation:** every write is checked by a zod schema in `server/schemas.js` before it reaches MongoDB; unknown fields are dropped.
 * **Pages** can be nested. Deleting a page deletes its sub-pages, and a page cannot be moved under its own child.
 * **Rate limits:** global, auth (20 / 15 min) and AI (10 / min and `AI_DAILY_LIMIT` per user per day).
@@ -126,11 +135,15 @@ server/
     auth.service.js               Sign-up, credentials, password reset, account deletion, export
     document.service.js           Pages: tree moves, 409 version conflicts, history, restore, sharing, cascade delete
     task.service.js               Sprint-board tasks
+    pageTasks.service.js          Notes -> tasks: find action items on a page, create linked tasks
+    workspaceAsk.service.js       Ask your workspace: passages, BM25 search, cited answer
+    ai.service.js                 Gemini calls: timeouts, fallback model, JSON output, status check
     versions.js, seed.js, email.js
   middleware/                     auth (JWT + session version), validate (zod, ids), loginLockout, rateLimits, security, errors
   lib/httpError.js                HttpError with a status; errors.js turns it into JSON
+  lib/pageText.js                 Page HTML -> headings, paragraphs and to-dos
   models/                         User, Document, DocumentVersion, Task, LoginAttempt
-  tests/api.test.js               API tests against an in-memory MongoDB
+  tests/                          api.test.js (API against an in-memory MongoDB), ai.test.js (Gemini handling), workspace.test.js (tasks + search)
 e2e/                              Browser journeys (Playwright)
 ```
 
@@ -141,7 +154,8 @@ e2e/                              Browser journeys (Playwright)
 | Add an API endpoint | Route in `server/routes/`, handler in `controllers/`, logic in `services/` |
 | Validate a new field | `server/schemas.js` (zod), then the model in `server/models/` |
 | Change a rule (who can see what, limits, conflicts) | `server/services/` |
-| Change the Copilot prompt or model behaviour | `server/controllers/ai.controller.js` |
+| Change the Copilot prompt or model behaviour | `server/controllers/ai.controller.js`, `server/services/ai.service.js` |
+| Change how action items or answers are found | `server/services/pageTasks.service.js`, `server/services/workspaceAsk.service.js` |
 | Change the AI cost limits | `server/middleware/rateLimits.js` and `AI_DAILY_LIMIT` |
 | Change what the editor saves or when | `src/hooks/useDocSync.ts` |
 | Change workspace data loading | `src/hooks/useWorkspace.ts` |
@@ -152,7 +166,8 @@ e2e/                              Browser journeys (Playwright)
 * No shared workspaces: every page belongs to one account. Pages can be shared read-only by link, not edited together.
 * Password-reset email needs a Resend account and a verified sender domain; without it, reset links only appear in the server log.
 * The free Render instance sleeps, so the first request after a while is slow.
-* The Copilot depends on Google's Gemini API. When Gemini is overloaded, the server retries, then tries `GEMINI_FALLBACK_MODEL` if set, then shows an error.
+* The Copilot depends on Google's Gemini API. When Gemini is slow or overloaded, the server retries, then uses `GEMINI_FALLBACK_MODEL`, then shows a clear error. Notes → tasks and Ask still work without it, using to-dos and keyword search.
+* Ask your workspace uses keyword search (BM25), so it matches words, not meaning: "launch date" finds "launch", but not "release". Embeddings would fix that.
 * No error monitoring service is wired in yet; errors are logged to the Render console.
 
 ## Roadmap
@@ -161,6 +176,9 @@ e2e/                              Browser journeys (Playwright)
 * [x] Playwright journey test
 * [x] Read-only page sharing
 * [x] Password reset and persistent login lockout
+* [x] Notes → tasks with links back to the page
+* [x] Ask your workspace with cited sources
+* [ ] Semantic search (embeddings) for Ask your workspace
 * [ ] `useDocSync` unit tests
 * [ ] Shared workspaces
 * [ ] Real-time co-editing
