@@ -161,3 +161,23 @@
 @keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .drain { animation: drain 3s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .hop, .drain { animation: none; } }
+
+/* Citation number in "Ask your workspace" answers ([1] becomes a small button that opens the page). */
+.cite {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.28rem;
+  margin: 0 0.1rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: 0.12em;
+  background: rgb(var(--accent) / 0.14);
+  color: rgb(var(--accent));
+  cursor: pointer;
+}
+.cite:hover { background: rgb(var(--accent) / 0.26); }
+.cite:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 1px; }

@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowUp, Copy, CornerDownLeft, Sparkles, Square, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowUp, Copy, CornerDownLeft, FileText, Library, Sparkles, Square, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import type { AskSource } from '../../lib/types';
+
+export type CopilotScope = 'page' | 'workspace';
 
 interface Props {
   open: boolean;
@@ -15,6 +18,12 @@ interface Props {
   onStop: () => void;
   onInsert: () => void;
   onCopy: () => void;
+  /** 'page' edits the open page; 'workspace' answers from every page with sources. */
+  scope: CopilotScope;
+  onScope: (s: CopilotScope) => void;
+  canUsePage: boolean;
+  sources: AskSource[] | null;
+  onOpenSource: (documentId: string) => void;
 }
 
 const SUGGESTIONS = [
@@ -23,6 +32,20 @@ const SUGGESTIONS = [
   'Continue writing from where I stopped',
   'Turn this into an action checklist',
 ];
+
+const WORKSPACE_SUGGESTIONS = [
+  'When is the beta launch?',
+  'What did we decide about pricing?',
+  'Who is working on onboarding?',
+];
+
+// Turns [1], [2] in an answer into buttons that open the cited page. Runs on already-sanitized HTML.
+function withCitations(html: string, sources: AskSource[] | null) {
+  if (!sources?.length) return html;
+  const known = new Set(sources.map((s) => s.n));
+  return html.replace(/\[(\d{1,2})\]/g, (m, n) =>
+    known.has(Number(n)) ? `<button type="button" class="cite" data-cite="${n}" aria-label="Open source ${n}">${n}</button>` : m);
+}
 
 export function CopilotPanel(p: Props) {
   const [prompt, setPrompt] = useState('');
@@ -37,7 +60,17 @@ export function CopilotPanel(p: Props) {
 
   useEffect(() => { if (p.loading) outRef.current?.scrollTo({ top: outRef.current.scrollHeight }); }, [p.output, p.loading]);
 
+  const html = useMemo(() => withCitations(p.output, p.sources), [p.output, p.sources]);
+  const isWorkspace = p.scope === 'workspace';
+
   if (!p.open) return null;
+
+  const openCite = (e: React.MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('[data-cite]');
+    if (!el) return;
+    const src = p.sources?.find((s) => s.n === Number(el.getAttribute('data-cite')));
+    if (src) p.onOpenSource(src.documentId);
+  };
 
   const submit = () => {
     const text = prompt.trim();
@@ -54,12 +87,33 @@ export function CopilotPanel(p: Props) {
         <button onClick={p.onClose} aria-label="Close Copilot" className="btn-ghost ml-auto h-7 w-7 !px-0"><X size={15} /></button>
       </header>
 
+      <div className="flex-none border-b border-line px-4 py-2.5">
+        <div className="flex rounded-lg border border-line p-0.5" role="tablist" aria-label="What Copilot works on">
+          {([['page', FileText, 'This page'], ['workspace', Library, 'All pages']] as const).map(([k, Icon, label]) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={p.scope === k}
+              disabled={k === 'page' && !p.canUsePage}
+              onClick={() => p.onScope(k)}
+              className={cn('flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md text-[12.5px] disabled:opacity-40', p.scope === k ? 'bg-fg/10 text-fg' : 'text-muted hover:text-fg')}
+            >
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div ref={outRef} className="min-h-0 flex-1 overflow-y-auto p-4">
         {!p.output && !p.loading && !p.error && (
           <div className="animate-fade-up">
-            <p className="mb-3 text-[13px] text-muted">Ask Copilot to write, edit or organize this page. It reads the page you have open.</p>
+            <p className="mb-3 text-[13px] text-muted">
+              {isWorkspace
+                ? 'Ask anything about your notes. Copilot searches every page and cites where each answer came from.'
+                : 'Ask Copilot to write, edit or organize this page. It reads the page you have open.'}
+            </p>
             <div className="space-y-1.5">
-              {SUGGESTIONS.map((s) => (
+              {(isWorkspace ? WORKSPACE_SUGGESTIONS : SUGGESTIONS).map((s) => (
                 <button key={s} onClick={() => p.onRun(s)} className="flex w-full items-center gap-2 rounded-lg border border-line px-3 py-2 text-left text-[13px] text-muted transition hover:border-accent/40 hover:bg-accent/5 hover:text-fg">
                   <Sparkles size={13} className="flex-none text-accent" /> {s}
                 </button>
@@ -78,7 +132,27 @@ export function CopilotPanel(p: Props) {
           </div>
         )}
         {p.output && (
-          <div className={cn('doc-editor !min-h-0 text-[14px]', p.loading && 'opacity-90')} dangerouslySetInnerHTML={{ __html: p.output }} />
+          // Citations are real buttons, so their clicks (mouse or keyboard) bubble here and open the page.
+          // The HTML was sanitized before the citation buttons were added.
+          <div onClick={openCite} className={cn('doc-editor !min-h-0 text-[14px]', p.loading && 'opacity-90')} dangerouslySetInnerHTML={{ __html: html }} />
+        )}
+        {isWorkspace && p.sources && p.sources.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-1.5 text-[11.5px] font-medium text-faint">Sources</div>
+            <ol className="space-y-1.5">
+              {p.sources.map((s) => (
+                <li key={s.n}>
+                  <button onClick={() => p.onOpenSource(s.documentId)} className="flex w-full gap-2 rounded-lg border border-line px-2.5 py-2 text-left transition hover:border-accent/40 hover:bg-accent/5">
+                    <span className="cite mt-0.5 flex-none">{s.n}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[12.5px] font-medium text-fg">{s.title}{s.heading ? ` › ${s.heading}` : ''}</span>
+                      <span className="line-clamp-2 text-[12px] text-muted">{s.snippet}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
         )}
         {p.error && (
           <div role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{p.error}</div>
@@ -87,7 +161,7 @@ export function CopilotPanel(p: Props) {
 
       {p.output && !p.loading && (
         <div className="flex flex-none gap-2 border-t border-line px-4 py-2.5">
-          <button onClick={p.onInsert} className="btn-primary flex-1"><CornerDownLeft size={13} /> Insert into page</button>
+          {!isWorkspace && <button onClick={p.onInsert} className="btn-primary flex-1"><CornerDownLeft size={13} /> Insert into page</button>}
           <button onClick={p.onCopy} className="btn-outline" aria-label="Copy"><Copy size={13} /></button>
         </div>
       )}
@@ -100,7 +174,7 @@ export function CopilotPanel(p: Props) {
             rows={1}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
-            placeholder="Ask Copilot…"
+            placeholder={isWorkspace ? 'Ask about all your pages…' : 'Ask Copilot…'}
             className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 text-[13.5px] outline-none placeholder:text-faint"
             aria-label="Ask Copilot"
           />
@@ -110,7 +184,7 @@ export function CopilotPanel(p: Props) {
             <button onClick={submit} disabled={!prompt.trim()} aria-label="Send" className="grid h-7 w-7 flex-none place-items-center rounded-lg bg-accent text-accent-fg disabled:opacity-40"><ArrowUp size={15} /></button>
           )}
         </div>
-        <p className="mt-1.5 px-1 text-[11px] text-faint">AI can make mistakes. Review before you insert.</p>
+        <p className="mt-1.5 px-1 text-[11px] text-faint">{isWorkspace ? 'Answers come only from your pages. Check the sources.' : 'AI can make mistakes. Review before you insert.'}</p>
       </div>
     </aside>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ImagePlus, Plus, X } from 'lucide-react';
+import { ImagePlus, KanbanSquare, ListChecks, Plus, X } from 'lucide-react';
 import { Editor } from '../editor/Editor';
 import { Popover } from '../ui/Popover';
 import { PriorityPill, StatusPill } from './Pills';
@@ -21,9 +21,13 @@ interface Props {
   onPatch: (patch: Partial<Doc>) => void;
   onAskAI: (prompt: string) => void;
   onSlashUsed?: () => void;
+  /** Board tasks created from this page. */
+  linkedTaskCount?: number;
+  onOpenTasks?: () => void;
+  onCreateTasks?: () => void;
 }
 
-export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed }: Props) {
+export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed, linkedTaskCount = 0, onOpenTasks, onCreateTasks }: Props) {
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const [tag, setTag] = useState('');
   const words = useMemo(() => { const t = plainText(doc.content); return t ? t.split(' ').length : 0; }, [doc.content]);
@@ -106,6 +110,15 @@ export function PageView({ doc, editorKey, onPatch, onAskAI, onSlashUsed }: Prop
             <Plus size={12} className="-mr-5 ml-2 text-faint" />
             <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="Add tag" aria-label="Add tag" className="h-[22px] w-[84px] rounded-md bg-transparent pl-6 text-[11.5px] outline-none placeholder:text-faint focus:bg-fg/[0.05]" />
           </form>
+          {linkedTaskCount > 0 ? (
+            <button onClick={onOpenTasks} className="pill hover:border-accent/40 hover:text-fg" title="Open the sprint board">
+              <KanbanSquare size={11} /> {linkedTaskCount} {linkedTaskCount === 1 ? 'task' : 'tasks'} on the board
+            </button>
+          ) : onCreateTasks && words >= 3 ? (
+            <button onClick={onCreateTasks} className="pill text-faint hover:border-accent/40 hover:text-fg" title="Turn action items on this page into board tasks">
+              <ListChecks size={11} /> Create tasks
+            </button>
+          ) : null}
           <span className="ml-auto flex items-center gap-1.5 text-[12px] text-faint">{words} words · edited {timeAgo(doc.updatedAt) || 'just now'}</span>
         </div>
 

@@ -1,4 +1,5 @@
 import { apiUrl } from './api';
+import type { AskSource } from '../lib/types';
 
 export interface StreamAiToEditorParams {
   prompt: string;
@@ -116,3 +117,54 @@ export async function streamAiToEditor({
 }
 
 export default streamAiToEditor;
+
+export interface StreamAskParams {
+  question: string;
+  signal?: AbortSignal;
+  onSources: (sources: AskSource[]) => void;
+  onChunk: (accumulated: string) => void;
+  onComplete: (fullText: string) => void;
+  onError: (error: Error) => void;
+}
+
+/** Streams an "Ask your workspace" answer: the sources arrive first, then the answer text. */
+export async function streamAsk({ question, signal, onSources, onChunk, onComplete, onError }: StreamAskParams): Promise<void> {
+  try {
+    const res = await fetch(apiUrl('/api/ai/ask'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ question }),
+      signal,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || (res.status === 401 ? 'Your session expired. Please sign in again.' : `Request failed (${res.status})`));
+    }
+    if (!res.body) throw new Error('Could not reach the server. Check your connection and try again.');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let text = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') { onComplete(text); return; }
+        let parsed: { text?: string; error?: string; sources?: AskSource[] };
+        try { parsed = JSON.parse(payload); } catch { continue; }
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.sources) onSources(parsed.sources);
+        if (parsed.text) { text += parsed.text; onChunk(text); }
+      }
+    }
+    onComplete(text);
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') onError(err instanceof Error ? err : new Error('Request failed'));
+  }
+}

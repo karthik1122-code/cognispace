@@ -26,13 +26,13 @@ const ROWS = [
     art: <SlashIllustration />,
   },
   {
-    fig: 'Fig 0.2', label: 'Copilot', title: 'AI that edits the page you are on.',
-    body: 'Highlight text to improve or summarize it, or ask Copilot to write from your page. You review the result, insert it, and undo it in one click.',
+    fig: 'Fig 0.2', label: 'Copilot', title: 'Ask anything about all your notes.',
+    body: 'Ask “When is the beta launch?” and Copilot searches every page, then answers with numbered sources you can click. On a page, it improves, summarizes or writes, and nothing lands until you review it.',
     art: <CopilotIllustration />,
   },
   {
-    fig: 'Fig 0.3', label: 'Sprints', title: 'Plan the work next to the writing.',
-    body: 'A drag-and-drop board for Backlog, In Progress, In Review and Done, with a table view when you need to scan and sort.',
+    fig: 'Fig 0.3', label: 'Sprints', title: 'Notes become tasks in one click.',
+    body: 'Copilot finds the action items on a page, including who and by when. Tick the ones you want and they land on the sprint board, each linked back to the page it came from.',
     art: <BoardIllustration />,
   },
   {
@@ -58,13 +58,14 @@ const SHORTCUTS: [string[], string][] = [
 const STACK = ['React 19', 'TypeScript', 'TipTap', 'Gemini', 'Express', 'MongoDB'];
 
 const STEPS = [
-  { n: '01', title: 'Write', body: 'Open a page and type “/” to add headings, to-dos, toggles and code.' },
-  { n: '02', title: 'Ask Copilot', body: 'Highlight text or describe what you need. Review the result before it lands.' },
-  { n: '03', title: 'Ship', body: 'Move tasks across the sprint board and keep every change in version history.' },
+  { n: '01', title: 'Write', body: 'Take notes as usual. Type “/” for headings, to-dos, toggles and code.' },
+  { n: '02', title: 'Turn notes into tasks', body: 'Create tasks from the page. Owners and dates come along, and each card links back to the note.' },
+  { n: '03', title: 'Ask, don’t search', body: 'Ask about anything you have written and get an answer with the pages it came from.' },
 ];
 
 const FAQ = [
   { q: 'Is CogniSpace free?', a: 'Yes, it is free while in beta. There is no card to enter and nothing to install.' },
+  { q: 'Does the AI make things up?', a: 'Ask your workspace answers only from your own pages and shows the sources it used. If nothing matches, it says so instead of guessing.' },
   { q: 'Which AI does Copilot use?', a: 'Google Gemini. Requests go through our server, are rate limited, and the result is shown for you to review before anything is inserted.' },
   { q: 'Can I get my data out?', a: 'Yes. Export all of your pages and tasks as JSON from Settings, or delete your account and data in one step.' },
   { q: 'Is it real-time multiplayer?', a: 'Not yet. Today it is a fast single-player workspace with safe autosave and conflict handling. Collaboration is on the roadmap.' },
@@ -116,9 +117,9 @@ export function LandingPage({ onGetStarted, onLogin, onTryDemo }: Props) {
   return (
     <div className="relative min-h-screen overflow-x-clip bg-app text-fg">
       <ScrollProgress />
-      <a href="#shipped" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
+      <a href="#features" className="flex h-9 items-center justify-center gap-2 border-b border-line bg-fg/[0.03] text-[12.5px] text-muted transition-colors hover:text-fg">
         <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide text-accent">New</span>
-        Version history, undo and honest autosave <ArrowRight size={12} />
+        Notes → tasks, and answers from all your pages <ArrowRight size={12} />
       </a>
 
       <header className="sticky top-0 z-40 border-b border-line bg-app/70 backdrop-blur-xl">
@@ -146,15 +147,15 @@ export function LandingPage({ onGetStarted, onLogin, onTryDemo }: Props) {
           <motion.div variants={staggerParent} initial="hidden" animate="show" className="relative mx-auto max-w-[1200px] px-5 pb-16 pt-20 text-center sm:pt-28">
             <motion.a variants={staggerChild} href={REPO} target="_blank" rel="noreferrer" className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-fg/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-muted backdrop-blur transition-colors hover:text-fg">
               <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-fg">Open source</span>
-              Notes, docs and sprints in one workspace <ArrowRight size={12} />
+              Notes in, tasks and answers out <ArrowRight size={12} />
             </motion.a>
             <motion.h1 variants={staggerChild} className="mx-auto max-w-[980px] text-balance text-[46px] font-semibold leading-[1.0] tracking-[-0.055em] sm:text-[84px]">
               <SplitWords text="Where ideas become" className="text-gradient" />
               <br />
-              <RotatingWords words={['shipped work.', 'launch plans.', 'sprint wins.', 'shared docs.']} className="text-gradient-accent" />
+              <RotatingWords words={['tracked tasks.', 'clear answers.', 'shipped work.', 'launch plans.']} className="text-gradient-accent" />
             </motion.h1>
             <motion.p variants={staggerChild} className="mx-auto mt-6 max-w-[620px] text-balance text-[17px] leading-relaxed text-muted sm:text-[19px]">
-              A fast, keyboard-first workspace with a block editor, an AI Copilot that edits the page you are on, and a sprint board, all in one place.
+              Decisions and to-dos get lost in meeting notes. CogniSpace turns your notes into tracked tasks and answers questions about everything you’ve written, with links back to the source.
             </motion.p>
             <motion.div variants={staggerChild} className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <button onClick={onGetStarted} className="btn-primary btn-shine !h-12 !rounded-full !px-7 !text-[15px]">Start building free <ArrowRight size={16} /></button>

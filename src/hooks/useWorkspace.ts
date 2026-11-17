@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiUrl } from '../utils/api';
 import { useDocSync } from './useDocSync';
-import { normalizeDoc, normalizeTask, type Doc, type Task } from '../lib/types';
+import { normalizeDoc, normalizeTask, type Doc, type SuggestResult, type Task, type TaskSuggestion } from '../lib/types';
 
 export interface DocTemplate {
   label: string;
@@ -213,10 +213,31 @@ export function useWorkspace({ onUnauthorized, onError }: Options) {
     }
   }, [request, tasks, onError]);
 
+  // ── Notes -> tasks ──────────────────────────────────────────────────────
+  /** Finds action items on a page. Sends the text on screen, which may be newer than the last save. */
+  const suggestTasks = useCallback(async (docId: string, content: string): Promise<SuggestResult> => {
+    const res = await request(`/api/documents/${docId}/suggest-tasks`, { method: 'POST', body: JSON.stringify({ content }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not read this page for tasks.');
+    return data as SuggestResult;
+  }, [request]);
+
+  const createTasksFromPage = useCallback(async (docId: string, items: TaskSuggestion[]) => {
+    const res = await request(`/api/documents/${docId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({ items: items.map(({ title, assignee, due, priority }) => ({ title, assignee, due, priority })) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not add the tasks.');
+    const created = (data as Record<string, unknown>[]).map(normalizeTask);
+    setTasks((p) => [...created, ...p]);
+    return created;
+  }, [request]);
+
   return {
     docs, tasks, active, activeId, setActiveId, loading, loadError, reload: load,
     createDoc, patchDoc, deleteDoc, replaceDoc, setDocMeta, randomCover,
-    createTask, updateTask, deleteTask,
+    createTask, updateTask, deleteTask, suggestTasks, createTasksFromPage,
     sync, conflict, resolveConflict, headers,
   };
 }

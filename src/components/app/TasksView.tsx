@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountUp } from '../ui/motion';
-import { CalendarDays, LayoutGrid, Plus, Rows3, Trash2 } from 'lucide-react';
+import { CalendarDays, FileText, LayoutGrid, Plus, Rows3, Trash2 } from 'lucide-react';
 import { Avatar, PriorityPill, StatusPill } from './Pills';
 import { PRIORITY_STYLE, STATUS_STYLE } from '../../lib/taskStyles';
 import { cn } from '../../lib/cn';
-import { STATUSES, type Status, type Task } from '../../lib/types';
+import { STATUSES, type Doc, type Status, type Task } from '../../lib/types';
 
 interface Props {
   tasks: Task[];
@@ -14,9 +14,22 @@ interface Props {
   onCreate: (partial?: Partial<Task>) => void;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onDelete: (id: string) => void;
+  /** Pages, so a task made from a page can link back to it. */
+  docs?: Doc[];
+  onOpenDoc?: (id: string) => void;
 }
 
-export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDelete }: Props) {
+export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDelete, docs = [], onOpenDoc }: Props) {
+  const pageOf = useMemo(() => new Map(docs.map((d) => [d.id, d])), [docs]);
+  const sourceLink = (t: Task) => {
+    const d = t.documentId ? pageOf.get(t.documentId) : undefined;
+    if (!d) return null;
+    return (
+      <button onClick={() => onOpenDoc?.(d.id)} title={`Created from “${d.title}”`} className="flex max-w-full items-center gap-1 truncate text-[11.5px] text-faint hover:text-accent">
+        <FileText size={11} className="flex-none" /> <span className="truncate">{d.icon ? `${d.icon} ` : ''}{d.title || 'Untitled'}</span>
+      </button>
+    );
+  };
   const [mode, setMode] = useState<'board' | 'table'>('board');
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<Status | null>(null);
@@ -126,6 +139,7 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                           <span className="ml-auto flex items-center gap-1 whitespace-nowrap text-[11.5px] text-faint"><CalendarDays size={11} />{t.dueDate}</span>
                           <Avatar name={t.assignee || userName} size={20} />
                         </div>
+                        <div className="mt-2 empty:hidden">{sourceLink(t)}</div>
                         {t.progress > 0 && t.progress < 100 && (
                           <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-fg/10"><motion.div className="h-full rounded-full bg-gradient-to-r from-accent to-[#d38bff]" initial={{ width: 0 }} animate={{ width: `${t.progress}%` }} transition={{ duration: 0.6 }} /></div>
                         )}
@@ -158,6 +172,7 @@ export function TasksView({ tasks, loading, userName, onCreate, onUpdate, onDele
                         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                         className="w-full bg-transparent font-medium outline-none"
                       />
+                      {sourceLink(t)}
                     </td>
                     <td className="px-3"><StatusPill value={t.status} onChange={(status) => onUpdate(t.id, { status, progress: status === 'Done' ? 100 : t.progress })} /></td>
                     <td className="px-3"><PriorityPill value={t.priority} onChange={(priority) => onUpdate(t.id, { priority })} /></td>
