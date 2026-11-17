@@ -39,8 +39,21 @@ const ITEMS: SlashItem[] = [
   { key: 'hr', label: 'Divider', hint: 'Separate sections', keywords: 'divider hr line', icon: <Minus size={15} />, run: (e) => e.chain().focus().setHorizontalRule().run() },
 ];
 
+// The menu sits below the cursor, or above it when there is no room (for example near the
+// bottom of the screen, where the demo banner is).
+type SlashState = { from: number; query: string; left: number; maxHeight: number; top?: number; bottom?: number };
+const MENU_MAX_H = 320;
+const BOTTOM_CLEARANCE = 88; // keeps clear of the bottom demo banner
+function placeMenu(c: { top: number; bottom: number; left: number }) {
+  const left = Math.max(8, Math.min(c.left, window.innerWidth - 300));
+  const below = window.innerHeight - BOTTOM_CLEARANCE - (c.bottom + 6);
+  const above = c.top - 6 - 8;
+  if (below >= MENU_MAX_H || below >= above) return { top: c.bottom + 6, left, maxHeight: Math.max(120, Math.min(MENU_MAX_H, below)) };
+  return { bottom: window.innerHeight - c.top + 6, left, maxHeight: Math.max(120, Math.min(MENU_MAX_H, above)) };
+}
+
 export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: EditorProps) {
-  const [slash, setSlash] = useState<{ from: number; query: string; top: number; left: number } | null>(null);
+  const [slash, setSlash] = useState<SlashState | null>(null);
   const [index, setIndex] = useState(0);
   const [sel, setSel] = useState<{ top: number; left: number; text: string } | null>(null);
 
@@ -50,6 +63,28 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
   const matchesRef = useRef<SlashItem[]>(ITEMS);
   const askRef = useRef(onAskAI);
   const changeRef = useRef(onChange);
+  const dismissedRef = useRef<number | null>(null);
+
+  // Update the ref at once as well as the state, so keys pressed before React re-renders see the menu.
+  const showSlash = (next: SlashState | null) => { slashRef.current = next; setSlash(next); };
+
+  // The menu is worked out from the text before the cursor on every change, so it cannot miss
+  // fast typing: a line that starts with "/" and has no space after it shows the menu.
+  const syncSlash = (ed: TiptapEditor) => {
+    const { empty, $from, head } = ed.state.selection;
+    const before = empty ? $from.parent.textContent.slice(0, $from.parentOffset) : '';
+    const m = /^\s*\/(\S*)$/.exec(before);
+    if (!m) { dismissedRef.current = null; if (slashRef.current) showSlash(null); return; }
+    const from = head - m[1].length - 1; // where the "/" is
+    if (dismissedRef.current === from) return; // closed with Escape: stay closed until the line changes
+    const cur = slashRef.current;
+    if (cur && cur.from === from) {
+      if (cur.query !== m[1]) { showSlash({ ...cur, query: m[1] }); setIndex(0); }
+      return;
+    }
+    setIndex(0);
+    showSlash({ from, query: m[1], ...placeMenu(ed.view.coordsAtPos(from)) });
+  };
 
   const matches = useMemo(() => {
     const q = slash?.query.toLowerCase().trim() ?? '';
@@ -73,7 +108,7 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
     content: initialContent || '<p></p>',
     editorProps: {
       attributes: { class: 'doc-editor', spellcheck: 'true' },
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (_view, event) => {
         const open = slashRef.current;
         if (open) {
           const list = matchesRef.current;
@@ -83,44 +118,17 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
             const item = list[indexRef.current];
             if (item) { event.preventDefault(); runItem(item); return true; }
           }
-          if (event.key === 'Escape') { setSlash(null); return true; }
-        }
-        if (event.key === '/' && !open) {
-          const { from, empty } = view.state.selection;
-          const $from = view.state.selection.$from;
-          const atLineStart = $from.parentOffset === 0 || $from.parent.textContent.slice(0, $from.parentOffset).trim() === '';
-          if (empty && atLineStart) {
-            // open after the "/" is inserted
-            setTimeout(() => {
-              const c = view.coordsAtPos(from);
-              setIndex(0);
-              setSlash({ from, query: '', top: c.bottom + 6, left: Math.min(c.left, window.innerWidth - 300) });
-            }, 0);
-          }
+          if (event.key === 'Escape') { dismissedRef.current = open.from; showSlash(null); return true; }
         }
         return false;
       },
     },
     onUpdate: ({ editor: ed }) => {
       changeRef.current(ed.getHTML());
-      const open = slashRef.current;
-      if (open) {
-        const head = ed.state.selection.head;
-        const text = head > open.from ? ed.state.doc.textBetween(open.from, head, '\n') : '';
-        if (!text.startsWith('/') || /\s/.test(text) || head <= open.from) setSlash(null);
-        else { setSlash({ ...open, query: text.slice(1) }); setIndex(0); }
-      } else {
-        // Fallback for input methods that don't fire a "/" keydown (mobile keyboards, IMEs).
-        const { head, empty } = ed.state.selection;
-        const $h = ed.state.selection.$from;
-        if (empty && head > 0 && ed.state.doc.textBetween(head - 1, head) === '/' && $h.parent.textContent.slice(0, $h.parentOffset).trim() === '/') {
-          const c = ed.view.coordsAtPos(head - 1);
-          setIndex(0);
-          setSlash({ from: head - 1, query: '', top: c.bottom + 6, left: Math.min(c.left, window.innerWidth - 300) });
-        }
-      }
+      syncSlash(ed);
     },
     onSelectionUpdate: ({ editor: ed }) => {
+      syncSlash(ed);
       const { from, to, empty } = ed.state.selection;
       if (empty) { setSel(null); return; }
       const text = ed.state.doc.textBetween(from, to, ' ');
@@ -134,8 +142,8 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
     const ed = editor;
     const open = slashRef.current;
     if (!ed || !open) return;
+    showSlash(null);
     ed.chain().focus().deleteRange({ from: open.from, to: ed.state.selection.head }).run();
-    setSlash(null);
     onSlashUsed?.();
     item.run(ed, (p) => askRef.current(p));
   }
@@ -143,7 +151,11 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
   // Close menus on outside click
   useEffect(() => {
     if (!slash) return;
-    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('[data-slash-menu]')) setSlash(null); };
+    const close = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('[data-slash-menu]')) return;
+      dismissedRef.current = slashRef.current?.from ?? null;
+      showSlash(null);
+    };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [slash]);
@@ -159,8 +171,8 @@ export function Editor({ initialContent, onChange, onAskAI, onSlashUsed }: Edito
           data-slash-menu
           role="listbox"
           aria-label="Insert block"
-          style={{ top: slash.top, left: slash.left }}
-          className="fixed z-50 max-h-[320px] w-[280px] animate-pop-in overflow-y-auto rounded-xl border border-line-strong bg-elevated p-1.5 shadow-pop"
+          style={slash.top !== undefined ? { top: slash.top, left: slash.left, maxHeight: slash.maxHeight } : { bottom: slash.bottom, left: slash.left, maxHeight: slash.maxHeight }}
+          className="fixed z-50 w-[280px] animate-pop-in overflow-y-auto rounded-xl border border-line-strong bg-elevated p-1.5 shadow-pop"
         >
           {matches.length === 0 && <div className="px-3 py-6 text-center text-[13px] text-faint">No blocks match “{slash.query}”</div>}
           {matches.map((item, i) => (

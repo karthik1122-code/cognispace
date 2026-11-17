@@ -121,3 +121,46 @@ test("the landing page fits a phone screen", async () => {
   assert.deepEqual(problems, []);
   await page.close();
 });
+
+test("the / menu keeps up with fast typing, filters, inserts, and stays above the bottom edge", async () => {
+  const { page, problems } = await newPage({ width: 1366, height: 700 });
+  await logIn(page);
+  await page.locator("main button.btn-primary", { hasText: "New page" }).click();
+  await page.getByPlaceholder("Untitled").fill("Slash test");
+  const editor = page.locator(".ProseMirror");
+  await editor.click();
+
+  // Typed in one burst, with no pause after the "/".
+  await page.keyboard.type("/bul", { delay: 0 });
+  const menu = page.locator("[data-slash-menu]");
+  await menu.waitFor({ timeout: 2000 });
+  assert.match(await menu.innerText(), /Bulleted list/);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("first item");
+  assert.equal(await editor.locator("ul li").count(), 1);
+  assert.equal(await menu.count(), 0);
+
+  // Escape closes it and further typing on that line does not reopen it.
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  await menu.waitFor();
+  await page.keyboard.press("Escape");
+  await page.keyboard.type("x");
+  assert.equal(await menu.count(), 0);
+
+  // Near the bottom of the window the menu opens upward and stays fully on screen.
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Backspace");
+  for (let i = 0; i < 14; i++) await page.keyboard.press("Enter");
+  await page.keyboard.type("/");
+  await menu.waitFor();
+  const box = await menu.boundingBox();
+  const caretTop = await page.evaluate(() => getSelection().getRangeAt(0).getBoundingClientRect().top);
+  assert.ok(caretTop > 700 / 2, "the line should be in the lower half of the window for this check");
+  assert.ok(box && box.y >= 0 && box.y + box.height <= caretTop + 1, `menu should open upward and stay on screen, got ${JSON.stringify(box)} with the line at ${caretTop}`);
+  await page.keyboard.press("Escape");
+
+  assert.deepEqual(problems, []);
+  await page.close();
+});
