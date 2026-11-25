@@ -127,9 +127,9 @@ function MainApp() {
       {view === 'auth' && <Fade k="auth"><AuthPage initialMode={authMode} onLoginSuccess={(u) => { setUser(u); setView('app'); }} onBackToLanding={() => setView('landing')} /></Fade>}
       {view === 'app' && <Fade k="app"><Workspace user={user} onLogout={logout} onBackToLanding={() => setView('landing')} /></Fade>}
       {view === 'app' && user?.demo && (
-        <div role="status" className="fixed bottom-4 left-1/2 z-50 flex max-w-[calc(100%-32px)] -translate-x-1/2 flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full border border-line-strong bg-elevated px-4 py-2 text-[13px] text-muted shadow-pop">
-          <span>Demo workspace: edit anything, it's deleted after 24 hours.</span>
-          <button onClick={() => { void logout().then(() => { setAuthMode('signup'); setView('auth'); }); }} className="font-semibold text-fg underline underline-offset-2">Create your own</button>
+        <div role="status" className="fixed inset-x-3 bottom-3 z-50 flex items-center justify-between gap-3 rounded-xl border border-line-strong bg-elevated px-4 py-2.5 text-[13px] text-muted shadow-pop sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:rounded-full sm:py-2">
+          <span><span className="sm:hidden">Demo workspace, deleted after 24h.</span><span className="hidden sm:inline">Demo workspace: edit anything, it's deleted after 24 hours.</span></span>
+          <button onClick={() => { void logout().then(() => { setAuthMode('signup'); setView('auth'); }); }} className="shrink-0 font-semibold text-fg underline underline-offset-2">Create your own</button>
         </div>
       )}
     </AnimatePresence>
